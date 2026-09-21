@@ -45,7 +45,7 @@ GITHUB_TOKEN   = os.environ.get(
     "GITHUB_TOKEN",
     "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",
 )
-CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "60"))
+CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "600"))
 AUTO_UPDATE    = os.environ.get("AUTO_UPDATE", "true").lower() in ("1", "true", "yes", "on")
 HARD_RESET     = os.environ.get("HARD_RESET", "false").lower() in ("1", "true", "yes", "on")
 
