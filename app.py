@@ -7,8 +7,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import or_
 import traceback, json
 
-
-
+from updater import update_checker, update_logger
 from core.utils import can_manage_queue
 from flask_app import app_core as app
 from core.login import login_bp
@@ -204,8 +203,9 @@ def profile():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        app.register_blueprints([login_bp,my_q_bp,user_mgmt_bp,stat_bp,queue_mgmt_bp,q_detail_bp,tickets_bp])
-        
+        app.register_blueprints([login_bp, my_q_bp, user_mgmt_bp, stat_bp,
+                                 queue_mgmt_bp, q_detail_bp, tickets_bp])
+
         if User.query.count() == 0:
             admin = User(
                 username='admin',
@@ -217,13 +217,25 @@ if __name__ == '__main__':
             )
             db.session.add(admin)
             db.session.commit()
-            
+
             admin_user = User.query.get(1)
             for queue in Queue.query.all():
                 if admin_user:
                     queue.admins.append(admin_user)
             db.session.commit()
             print('✅ Созданы тестовые очереди')
-    
-    app.run(debug=True, host='0.0.0.0', port=80)
+
+    # === Запуск фонового сервиса обновлений ===
+    # В debug-режиме Flask reloader запускает скрипт дважды — стартуем только в дочернем процессе
+    if update_checker and (
+        not app.app.debug
+        or os.environ.get("WERKZEUG_RUN_MAIN") == "true"
+    ):
+        update_checker.start()
+
+    try:
+        app.run(debug=True, host='0.0.0.0', port=80)
+    finally:
+        if update_checker:
+            update_checker.stop()
     
