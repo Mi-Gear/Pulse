@@ -1,0 +1,670 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0 fw-semibold">
+            <i class="fas fa-chart-bar me-2" style="color: var(--primary);"></i>График занятости автомобилей
+        </h4>
+        <span class="text-muted small">Кликните на день для бронирования</span>
+    </div>
+</div>
+
+<!-- СТАТИСТИКА -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card blue">
+            <div><div class="stat-number" id="totalCars">0</div><div class="stat-label">Всего авто</div></div>
+            <div class="stat-icon"><i class="fas fa-car"></i></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card green">
+            <div><div class="stat-number" id="availableCars">0</div><div class="stat-label">Доступно</div></div>
+            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card yellow">
+            <div><div class="stat-number" id="bookedCars">0</div><div class="stat-label">Занято</div></div>
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card red">
+            <div><div class="stat-number" id="myBookingsCount">0</div><div class="stat-label">Мои бронирования</div></div>
+            <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+        </div>
+    </div>
+</div>
+
+<!-- ФИЛЬТРЫ -->
+<div class="card-modern mb-3">
+    <div class="card-body py-2">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label-modern small">Период</label>
+                <select class="form-select-modern" id="periodSelect">
+                    <option value="7">7 дней</option>
+                    <option value="14">14 дней</option>
+                    <option value="30" selected>30 дней</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label-modern small">Автомобиль</label>
+                <select class="form-select-modern" id="carFilter">
+                    <option value="all">Все автомобили</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-primary-gradient w-100" onclick="refreshGantt()">
+                    <i class="fas fa-sync me-1"></i> Обновить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ГРАФИК -->
+<div class="card-modern">
+    <div class="card-header">
+        <i class="fas fa-chart-bar me-2" style="color: var(--primary);"></i>График занятости автомобилей
+    </div>
+    <div class="card-body" style="overflow-x: auto; position: relative; padding: 0;">
+        <div id="ganttContainer" style="min-width: 800px; padding: 16px;"></div>
+        <div id="loadingOverlay" style="display: none; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,0.7); align-items: center; justify-content: center; z-index: 10; border-radius: 8px;">
+            <div class="spinner-border text-primary" role="status"><span class="visually-hidden">Загрузка...</span></div>
+        </div>
+    </div>
+</div>
+
+<!-- МОИ БРОНИРОВАНИЯ -->
+<div class="card-modern mt-4">
+    <div class="card-header"><i class="fas fa-calendar-check me-2" style="color: var(--primary);"></i>Мои бронирования</div>
+    <div class="card-body"><div id="myBookingsList"><div class="text-center py-3 text-muted">Загрузка...</div></div></div>
+</div>
+
+<!-- ЛЕГЕНДА -->
+<div class="mt-3 d-flex flex-wrap gap-4">
+    <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#22c55e;vertical-align:middle;margin-right:4px;"></span> Свободно</span>
+    <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#3b82f6;vertical-align:middle;margin-right:4px;"></span> Занято</span>
+    <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#f59e0b;vertical-align:middle;margin-right:4px;"></span> Ваше</span>
+    <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#e5e7eb;vertical-align:middle;margin-right:4px;border:1px solid #d1d5db;"></span> Выходной</span>
+</div>
+
+<!-- МОДАЛКА -->
+<div class="modal fade" id="bookModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-calendar-plus me-2" style="color: var(--primary);"></i>
+                    Бронирование автомобиля
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="bookCarId">
+                
+                <div class="mb-3">
+                    <label class="form-label-modern">Автомобиль</label>
+                    <input type="text" class="form-control-modern" id="bookCarName" disabled>
+                </div>
+                
+                <div class="row g-3">
+                    <div class="col-12">
+                        <h6 class="fw-semibold text-muted" style="font-size: 0.85rem;">
+                            <i class="fas fa-play me-1" style="color: #22c55e;"></i> Начало
+                        </h6>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-modern">Дата начала</label>
+                        <input type="date" class="form-control-modern" id="bookStartDate" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-modern">Время начала</label>
+                        <input type="time" class="form-control-modern" id="bookStartTime" required step="600">
+                    </div>
+                    
+                    <div class="col-12 mt-2">
+                        <h6 class="fw-semibold text-muted" style="font-size: 0.85rem;">
+                            <i class="fas fa-stop me-1" style="color: #ef4444;"></i> Окончание
+                        </h6>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-modern">Дата окончания</label>
+                        <input type="date" class="form-control-modern" id="bookEndDate" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label-modern">Время окончания</label>
+                        <input type="time" class="form-control-modern" id="bookEndTime" required step="600">
+                    </div>
+                </div>
+                
+                <div class="mb-3 mt-3">
+                    <label class="form-label-modern">Цель поездки</label>
+                    <textarea class="form-control-modern" id="bookPurpose" rows="2" placeholder="Куда и зачем..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-modern" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary-gradient" onclick="confirmBooking()">
+                    <i class="fas fa-check me-1"></i> Забронировать
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let allBookings = [];
+let allCars = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadCars();
+    refreshGantt();
+});
+
+function loadCars() {
+    fetch('/api/booking-gantt/cars')
+        .then(r => r.json())
+        .then(data => {
+            allCars = data;
+            const carFilter = document.getElementById('carFilter');
+            carFilter.innerHTML = '<option value="all">Все автомобили</option>';
+            data.forEach(car => {
+                const option = document.createElement('option');
+                option.value = car.id;
+                option.textContent = car.name;
+                carFilter.appendChild(option);
+            });
+            updateStats();
+        });
+}
+
+function updateStats() {
+    const total = allCars.length;
+    const available = allCars.filter(c => c.is_available).length;
+    document.getElementById('totalCars').textContent = total;
+    document.getElementById('availableCars').textContent = available;
+    document.getElementById('bookedCars').textContent = total - available;
+}
+
+function refreshGantt() {
+    const period = parseInt(document.getElementById('periodSelect').value);
+    const carFilter = document.getElementById('carFilter').value;
+    
+    showLoading(true);
+    
+    Promise.all([
+        fetch('/api/booking-gantt-data').then(r => r.json()),
+        fetch('/api/booking-gantt/cars').then(r => r.json())
+    ]).then(([bookings, cars]) => {
+        allBookings = bookings;
+        allCars = cars;
+        
+        const now = new Date();
+        const startDate = new Date(now);
+        startDate.setDate(startDate.getDate() - 3);
+        const endDate = new Date(now);
+        endDate.setDate(endDate.getDate() + period);
+        
+        let filteredBookings = bookings;
+        let filteredCars = cars;
+        if (carFilter !== 'all') {
+            const carId = parseInt(carFilter);
+            filteredBookings = bookings.filter(b => b.car_id === carId);
+            filteredCars = cars.filter(c => c.id === carId);
+        }
+        
+        const myBookings = bookings.filter(b => b.is_mine);
+        document.getElementById('myBookingsCount').textContent = myBookings.length;
+        
+        updateStats();
+        renderGantt(filteredBookings, filteredCars, startDate, endDate);
+        loadMyBookings();
+        showLoading(false);
+    }).catch(error => {
+        console.error('Error:', error);
+        showLoading(false);
+    });
+}
+
+function loadMyBookings() {
+    fetch('/api/booking-gantt-data')
+        .then(r => r.json())
+        .then(data => {
+            const myBookings = data.filter(b => b.is_mine);
+            const container = document.getElementById('myBookingsList');
+            if (myBookings.length === 0) {
+                container.innerHTML = '<div class="text-center py-3 text-muted">Нет активных бронирований</div>';
+                return;
+            }
+            let html = '<div class="row g-2">';
+            myBookings.forEach(b => {
+                const start = new Date(b.start);
+                const end = new Date(b.end);
+                const startStr = start.toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+                const endStr = end.toLocaleString('ru-RU', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                });
+                html += `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card-modern">
+                            <div class="card-body py-2 px-3 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${b.car_name}</strong>
+                                    <div class="text-muted small">${startStr} - ${endStr}</div>
+                                </div>
+                                <button class="btn btn-sm btn-outline-modern text-danger" onclick="cancelBooking(${b.id})">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            container.innerHTML = html;
+        });
+}
+
+function renderGantt(bookings, cars, startDate, endDate) {
+    const container = document.getElementById('ganttContainer');
+    
+    if (cars.length === 0) {
+        container.innerHTML = '<div class="text-center py-5 text-muted">Нет автомобилей</div>';
+        return;
+    }
+    
+    const sortedCars = [...cars].sort((a, b) => a.name.localeCompare(b.name));
+    const totalDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    const dayWidth = 65;
+    
+    const today = new Date();
+    const isToday = (date) => date.toDateString() === today.toDateString();
+    
+    // === ЗАГОЛОВОК ===
+    let headerHtml = `<div style="display: flex; margin-bottom: 6px; padding-left: 145px; border-bottom: 2px solid #e5e7eb; padding-bottom: 4px;">`;
+    let currentDate = new Date(startDate);
+    while (currentDate <= endDate) {
+        const isWeekend = currentDate.getDay() === 0 || currentDate.getDay() === 6;
+        const isTodayFlag = isToday(currentDate);
+        headerHtml += `
+            <div style="
+                width: ${dayWidth}px;
+                min-width: ${dayWidth}px;
+                text-align: center;
+                font-size: 11px;
+                font-weight: ${isTodayFlag ? '700' : '500'};
+                color: ${isTodayFlag ? '#2563eb' : isWeekend ? '#ef4444' : '#374151'};
+                padding: 2px 0;
+                flex-shrink: 0;
+                border-radius: 4px;
+                background: ${isTodayFlag ? '#eff6ff' : 'transparent'};
+            ">
+                ${currentDate.getDate()}.${currentDate.getMonth()+1}
+                ${isTodayFlag ? '<div style="font-size: 8px; color: #2563eb;">сегодня</div>' : ''}
+            </div>
+        `;
+        currentDate.setDate(currentDate.getDate() + 1);
+    }
+    headerHtml += `</div>`;
+    
+    // === ТЕЛО ===
+    let bodyHtml = '';
+    sortedCars.forEach((car) => {
+        const carBookings = bookings.filter(b => b.car_id === car.id);
+        
+        bodyHtml += `<div style="display: flex; align-items: stretch; margin-bottom: 4px; gap: 10px; min-height: 34px;">`;
+        bodyHtml += `<div style="width: 135px; font-size: 13px; font-weight: 500; color: #1a202c; flex-shrink: 0; display: flex; align-items: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${car.name}</div>`;
+        bodyHtml += `<div style="display: flex; flex: 1;">`;
+        
+        let currentDay = new Date(startDate);
+        while (currentDay <= endDate) {
+            const dayStart = new Date(currentDay);
+            const dayEnd = new Date(currentDay);
+            dayEnd.setHours(23, 59, 59, 999);
+            
+            const dateStr = currentDay.toISOString().slice(0,10);
+            const isWeekend = currentDay.getDay() === 0 || currentDay.getDay() === 6;
+            const isTodayFlag = isToday(currentDay);
+            
+            // === ФИЛЬТРАЦИЯ ===
+            const dayBookings = carBookings.filter(b => {
+                const bStart = new Date(b.start);
+                const bEnd = new Date(b.end);
+                return bStart <= dayEnd && bEnd >= dayStart;
+            });
+            
+            if (isWeekend) {
+                bodyHtml += `
+                    <div style="
+                        width: ${dayWidth}px;
+                        min-width: ${dayWidth}px;
+                        height: 100%;
+                        background: #e5e7eb;
+                        border: 1px solid #d1d5db;
+                        flex-shrink: 0;
+                        box-sizing: border-box;
+                    " title="Выходной"></div>
+                `;
+                currentDay.setDate(currentDay.getDate() + 1);
+                continue;
+            }
+            
+            // === РАСЧЕТ СЕГМЕНТОВ ===
+            const dayHours = 24;
+            let bookedSegments = [];
+            
+            if (dayBookings.length > 0) {
+                for (const b of dayBookings) {
+                    const bStart = new Date(b.start);
+                    const bEnd = new Date(b.end);
+                    let startHour = (bStart.getHours() + bStart.getMinutes() / 60);
+                    let endHour = (bEnd.getHours() + bEnd.getMinutes() / 60);
+                    
+                    if (bEnd.getDate() > bStart.getDate()) {
+                        endHour = 24;
+                    }
+                    if (bStart.getDate() < currentDay.getDate()) {
+                        startHour = 0;
+                    }
+                    if (bEnd.getDate() > currentDay.getDate()) {
+                        endHour = 24;
+                    }
+                    
+                    if (endHour > startHour) {
+                        bookedSegments.push({
+                            start: startHour,
+                            end: endHour,
+                            isMine: b.is_mine,
+                            id: b.id
+                        });
+                    }
+                }
+            }
+            
+            let finalSegments = [];
+            
+            if (bookedSegments.length === 0) {
+                const bgColor = isTodayFlag ? '#86efac' : '#22c55e';
+                const hoverBg = isTodayFlag ? '#6ee7a0' : '#16a34a';
+                
+                bodyHtml += `
+                    <div style="
+                        width: ${dayWidth}px;
+                        min-width: ${dayWidth}px;
+                        height: 100%;
+                        background: ${bgColor};
+                        cursor: pointer;
+                        flex-shrink: 0;
+                        transition: all 0.15s;
+                        box-sizing: border-box;
+                    " onclick="openBookingModal(${car.id}, '${car.name}', '${dateStr}')"
+                       onmouseover="this.style.background='${hoverBg}'; this.style.transform='scale(1.04)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.15)'"
+                       onmouseout="this.style.background='${bgColor}'; this.style.transform='scale(1)'; this.style.boxShadow='none'"
+                       title="Свободно"></div>
+                `;
+                currentDay.setDate(currentDay.getDate() + 1);
+                continue;
+            }
+            
+            // Сортируем
+            bookedSegments.sort((a, b) => a.start - b.start);
+            
+            // Объединяем
+            let merged = [];
+            for (const seg of bookedSegments) {
+                if (merged.length === 0) {
+                    merged.push(seg);
+                } else {
+                    const last = merged[merged.length - 1];
+                    if (seg.start <= last.end) {
+                        last.end = Math.max(last.end, seg.end);
+                        if (seg.isMine) last.isMine = true;
+                    } else {
+                        merged.push(seg);
+                    }
+                }
+            }
+            
+            let currentPos = 0;
+            for (const seg of merged) {
+                if (seg.start > currentPos) {
+                    finalSegments.push({ type: 'free', start: currentPos, end: seg.start });
+                }
+                finalSegments.push({ type: seg.isMine ? 'mine' : 'booked', start: seg.start, end: seg.end, id: seg.id });
+                currentPos = seg.end;
+            }
+            if (currentPos < dayHours) {
+                finalSegments.push({ type: 'free', start: currentPos, end: dayHours });
+            }
+            
+            // === РАСЧЕТ ШИРИНЫ СЕГМЕНТОВ С ОКРУГЛЕНИЕМ ===
+            let segHtml = '';
+            let totalWidth = 0;
+            let segData = [];
+            
+            for (const seg of finalSegments) {
+                const widthPercent = ((seg.end - seg.start) / dayHours) * 100;
+                const roundedWidth = Math.round(widthPercent * 100) / 100;
+                totalWidth += roundedWidth;
+                segData.push({
+                    seg: seg,
+                    roundedWidth: roundedWidth,
+                    isLast: false
+                });
+            }
+            
+            // === ЕСЛИ СУММА МЕНЬШЕ 100, ДОБАВЛЯЕМ ПОСЛЕДНЕМУ ===
+            if (segData.length > 0 && totalWidth < 100) {
+                const diff = 100 - totalWidth;
+                segData[segData.length - 1].roundedWidth += diff;
+            }
+            
+            for (const item of segData) {
+                const seg = item.seg;
+                const roundedWidth = item.roundedWidth;
+                
+                if (roundedWidth < 0.5) continue;
+                
+                let bgColor = '#22c55e';
+                let cursor = 'pointer';
+                let onclick = `onclick="event.stopPropagation(); openBookingModal(${car.id}, '${car.name}', '${dateStr}')"`;
+                let hoverStyle = 'this.style.transform=\'scaleY(1.15)\'; this.style.boxShadow=\'0 2px 8px rgba(0,0,0,0.2)\'';
+                let title = 'Свободно';
+                
+                if (seg.type === 'booked') {
+                    bgColor = '#3b82f6';
+                    cursor = 'default';
+                    onclick = '';
+                    hoverStyle = '';
+                    title = 'Занято';
+                } else if (seg.type === 'mine') {
+                    bgColor = '#f59e0b';
+                    cursor = 'pointer';
+                    onclick = `onclick="event.stopPropagation(); if(confirm('Отменить бронирование?')) cancelBooking(${seg.id})"`;
+                    title = 'Ваше бронирование';
+                } else {
+                    if (isTodayFlag) {
+                        bgColor = '#86efac';
+                        hoverStyle = 'this.style.background=\'#6ee7a0\'; this.style.transform=\'scaleY(1.15)\'; this.style.boxShadow=\'0 2px 8px rgba(0,0,0,0.2)\'';
+                    }
+                }
+                
+                if (roundedWidth > 0.5) {
+                    segHtml += `
+                        <div style="
+                            width: ${roundedWidth}%;
+                            height: 100%;
+                            background: ${bgColor};
+                            cursor: ${cursor};
+                            transition: all 0.15s;
+                            flex-shrink: 0;
+                            position: relative;
+                            box-sizing: border-box;
+                        " 
+                        ${onclick}
+                        onmouseover="${hoverStyle}"
+                        onmouseout="this.style.background='${bgColor}'; this.style.transform='scaleY(1)'; this.style.boxShadow='none'"
+                        title="${title}"></div>
+                    `;
+                }
+            }
+            
+            bodyHtml += `
+                <div style="
+                    width: ${dayWidth}px;
+                    min-width: ${dayWidth}px;
+                    height: 100%;
+                    flex-shrink: 0;
+                    overflow: hidden;
+                    display: flex;
+                    background: #f1f5f9;
+                    box-sizing: border-box;
+                    ${isTodayFlag ? 'opacity: 0.9;' : ''}
+                ">
+                    ${segHtml}
+                </div>
+            `;
+            
+            currentDay.setDate(currentDay.getDate() + 1);
+        }
+        
+        bodyHtml += `</div>`;
+        bodyHtml += `</div>`;
+    });
+    
+    container.innerHTML = headerHtml + bodyHtml;
+}
+
+function openBookingModal(carId, carName, dateStr) {
+    document.getElementById('bookCarId').value = carId;
+    document.getElementById('bookCarName').value = carName;
+    
+    const now = new Date();
+    const currentHour = now.getHours();
+    const startHour = Math.min(currentHour + 1, 23);
+    
+    const dateValue = dateStr || now.toISOString().slice(0, 10);
+    
+    document.getElementById('bookStartDate').value = dateValue;
+    document.getElementById('bookEndDate').value = dateValue;
+    document.getElementById('bookStartTime').value = String(startHour).padStart(2, '0') + ':00';
+    document.getElementById('bookEndTime').value = String(Math.min(startHour + 2, 24)).padStart(2, '0') + ':00';
+    document.getElementById('bookPurpose').value = '';
+    
+    new bootstrap.Modal(document.getElementById('bookModal')).show();
+}
+
+function confirmBooking() {
+    const carId = document.getElementById('bookCarId').value;
+    const startDate = document.getElementById('bookStartDate').value;
+    const startTime = document.getElementById('bookStartTime').value;
+    const endDate = document.getElementById('bookEndDate').value;
+    const endTime = document.getElementById('bookEndTime').value;
+    const purpose = document.getElementById('bookPurpose').value;
+    
+    if (!startDate || !startTime || !endDate || !endTime) {
+        alert('Заполните все поля');
+        return;
+    }
+    
+    const startStr = startDate + 'T' + startTime + ':00';
+    const endStr = endDate + 'T' + endTime + ':00';
+    
+    if (startStr >= endStr) {
+        alert('Дата и время начала должны быть раньше даты и времени окончания');
+        return;
+    }
+    
+    showLoading(true);
+    
+    fetch('/api/booking-gantt/book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            car_id: parseInt(carId),
+            start_date: startStr,
+            end_date: endStr,
+            purpose: purpose
+        })
+    })
+    .then(r => r.json())
+    .then(result => {
+        showLoading(false);
+        if (result.success) {
+            alert(result.message);
+            bootstrap.Modal.getInstance(document.getElementById('bookModal')).hide();
+            refreshGantt();
+        } else {
+            alert('Ошибка: ' + result.error);
+        }
+    })
+    .catch(error => {
+        showLoading(false);
+        alert('Ошибка при бронировании');
+        console.error(error);
+    });
+}
+
+function cancelBooking(bookingId) {
+    showLoading(true);
+    fetch(`/api/booking-gantt/cancel/${bookingId}`, { method: 'POST' })
+        .then(r => r.json())
+        .then(result => {
+            showLoading(false);
+            if (result.success) {
+                alert(result.message);
+                refreshGantt();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        })
+        .catch(error => {
+            showLoading(false);
+            alert('Ошибка при отмене');
+            console.error(error);
+        });
+}
+
+function showLoading(show) {
+    document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
+}
+
+document.getElementById('periodSelect').addEventListener('change', refreshGantt);
+document.getElementById('carFilter').addEventListener('change', refreshGantt);
+</script>
+
+<style>
+.stat-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 16px 20px;
+    transition: box-shadow 0.2s;
+}
+.stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+.stat-card .stat-number { font-size: 1.5rem; font-weight: 600; color: #1a202c; }
+.stat-card .stat-label { font-size: 0.85rem; color: #6b7280; }
+.stat-card .stat-icon { font-size: 1.5rem; opacity: 0.6; }
+.stat-card.blue .stat-icon { color: #3b82f6; }
+.stat-card.green .stat-icon { color: #22c55e; }
+.stat-card.yellow .stat-icon { color: #f59e0b; }
+.stat-card.red .stat-icon { color: #ef4444; }
+
+#loadingOverlay {
+    display: none;
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,0.7);
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    border-radius: 8px;
+}
+</style>
+{% endblock %}

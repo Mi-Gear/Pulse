@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row g-4 mb-4 justify-content-center">
+    <div class="col-md-6">
+        <div class="card-modern">
+            <div class="card-header text-center">
+                <i style="color: var(--primary);"></i>Ошибка
+            </div>
+            <div class="card-body text-center">
+                Что-то пошло не так. Пожалуйста, повторите попытку позднее. При частом возникновении проблемы, сообщите администратору следующий код:
+                <h1></h1>
+                <h1>{{error_code}}</h1>
+                <canvas id="statusChart" height="10"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

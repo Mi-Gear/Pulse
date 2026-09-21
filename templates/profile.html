@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0 fw-semibold">
+            <i class="fas fa-user-circle me-2" style="color: var(--primary);"></i>Мой профиль
+        </h4>
+        <span class="text-muted small">Управление личными данными</span>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card-modern animate-fade-in">
+            <div class="card-header">
+                <i class="fas fa-edit me-2" style="color: var(--primary);"></i>Редактирование профиля
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row g-3">
+                        <!-- ФИО одной строкой -->
+                        <div class="col-12">
+                            <label class="form-label-modern">ФИО</label>
+                            <input type="text" class="form-control-modern" name="full_name" value="{{ current_user.full_name or '' }}" placeholder="Иванов Иван Иванович">
+                        </div>
+
+                        <!-- Контакты -->
+                        <div class="col-md-6">
+                            <label class="form-label-modern">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control-modern" name="email" value="{{ current_user.email }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label-modern">
+                                <i class="fas fa-phone me-1"></i>Телефон
+                            </label>
+                            <input type="text" class="form-control-modern" name="phone" value="{{ current_user.phone or '' }}" placeholder="+7-XXX-XXX-XX-XX">
+                        </div>
+
+                        <!-- Рабочие данные -->
+                        <div class="col-md-4">
+                            <label class="form-label-modern">
+                                <i class="fas fa-building me-1"></i>Отделение/Кафедра
+                            </label>
+                            <input type="text" class="form-control-modern" name="department" value="{{ current_user.department or '' }}" placeholder="Отделение">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-modern">
+                                <i class="fas fa-briefcase me-1"></i>Должность
+                            </label>
+                            <input type="text" class="form-control-modern" name="position" value="{{ current_user.position or '' }}" placeholder="Должность">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label-modern">
+                                <i class="fas fa-door-open me-1"></i>Кабинет
+                            </label>
+                            <input type="text" class="form-control-modern" name="office" value="{{ current_user.office or '' }}" placeholder="№ кабинета">
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="notify_email" name="notify_email"
+                                       {% if current_user.notify_email %}checked{% endif %}>
+                                <label class="form-check-label" for="notify_email">
+                                    <i class="fas fa-envelope me-1"></i> Получать уведомления по email
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary-gradient">
+                                <i class="fas fa-save me-1"></i> Сохранить изменения
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card-modern">
+            <div class="card-header">
+                <i class="fas fa-id-card me-2" style="color: var(--primary);"></i>Информация
+            </div>
+            <div class="card-body">
+                <div class="profile-info">
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">ФИО</span>
+                        <span class="profile-info-value">{{ current_user.full_name or 'Не указано' }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Логин</span>
+                        <span class="profile-info-value">{{ current_user.username }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Email</span>
+                        <span class="profile-info-value">{{ current_user.email }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Телефон</span>
+                        <span class="profile-info-value">{{ current_user.phone or '—' }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Отделение</span>
+                        <span class="profile-info-value">{{ current_user.department or '—' }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Должность</span>
+                        <span class="profile-info-value">{{ current_user.position or '—' }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Кабинет</span>
+                        <span class="profile-info-value">{{ current_user.office or '—' }}</span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">Роль</span>
+                        <span class="profile-info-value">
+                            <span class="badge-status {% if current_user.is_admin %}badge-status-new{% else %}badge-status-other{% endif %}">
+                                {% if current_user.is_admin %}Администратор{% else %}Пользователь{% endif %}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="profile-info-item">
+                        <span class="profile-info-label">В системе с</span>
+                        <span class="profile-info-value">{{ current_user.created_at.strftime('%d.%m.%Y') }}</span>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row g-2 text-center">
+                    <div class="col-6">
+                        <div class="p-2 bg-light-custom rounded-8">
+                            <div class="fw-semibold">{{ current_user.created_tickets|length }}</div>
+                            <small class="text-muted">Создано заявок</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 bg-light-custom rounded-8">
+                            <div class="fw-semibold">{{ current_user.assigned_tickets|length }}</div>
+                            <small class="text-muted">Назначено заявок</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <strong>Очереди:</strong>
+                    <div class="mt-1">
+                        {% for queue in current_user.queues %}
+                            <span class="badge bg-light text-dark border-0">{{ queue.name }}</span>
+                        {% else %}
+                            <span class="text-muted">Не состоит в очередях</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.profile-info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.profile-info-item:last-child {
+    border-bottom: none;
+}
+.profile-info-label {
+    font-weight: 500;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+.profile-info-value {
+    font-weight: 500;
+    color: #1a202c;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

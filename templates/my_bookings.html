@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0 fw-semibold">
+            <i class="fas fa-calendar-check me-2" style="color: var(--primary);"></i>Мои бронирования
+        </h4>
+        <span class="text-muted small">Управление бронированиями автомобилей</span>
+    </div>
+    <a href="{{ url_for('booking_cars') }}" class="btn btn-primary-gradient">
+        <i class="fas fa-plus me-1"></i> Новое бронирование
+    </a>
+</div>
+
+<!-- ===== СТАТИСТИКА ===== -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card blue">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ bookings|length }}</div>
+                    <div class="stat-label">Активных</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card green">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ history|length }}</div>
+                    <div class="stat-label">В истории</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-history"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card yellow">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ bookings|selectattr('start_date', 'le', now)|list|length }}</div>
+                    <div class="stat-label">Текущие</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card red">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ bookings|selectattr('start_date', 'gt', now)|list|length }}</div>
+                    <div class="stat-label">Будущие</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-calendar-plus"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== АКТИВНЫЕ БРОНИРОВАНИЯ ===== -->
+<h5 class="fw-semibold mb-3">
+    <i class="fas fa-calendar-check me-2" style="color: var(--primary);"></i>
+    Активные бронирования
+    <span class="badge bg-light text-dark border-0 ms-2">{{ bookings|length }}</span>
+</h5>
+
+{% if bookings %}
+    <div class="row g-3 mb-4">
+        {% for booking in bookings %}
+            <div class="col-md-6 col-lg-4">
+                <div class="card-modern h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="fw-semibold mb-0">{{ booking.car.brand }} {{ booking.car.model }}</h5>
+                                <span class="text-muted small">{{ booking.car.license_plate }}</span>
+                            </div>
+                            {% if booking.start_date <= now and booking.end_date >= now %}
+                                <span class="badge-status badge-status-work">🟡 В процессе</span>
+                            {% elif booking.start_date > now %}
+                                <span class="badge-status badge-status-new">🔵 Запланировано</span>
+                            {% else %}
+                                <span class="badge-status badge-status-closed">✅ Завершено</span>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-2">
+                            <div class="text-muted small">
+                                <i class="far fa-calendar-alt me-1"></i>
+                                {{ booking.start_date.strftime('%d.%m.%Y %H:%M') }} - {{ booking.end_date.strftime('%d.%m.%Y %H:%M') }}
+                            </div>
+                            {% if booking.purpose %}
+                                <div class="text-muted small mt-1">
+                                    <i class="fas fa-flag me-1"></i> {{ booking.purpose }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="text-muted small mb-2">
+                            <i class="fas fa-layer-group me-1"></i> {{ booking.car.queue.name }}
+                        </div>
+                        
+                        <hr>
+                        
+                        <div class="d-flex flex-wrap gap-2">
+                            {% if booking.start_date > now %}
+                                <form method="POST" action="{{ url_for('cancel_booking', booking_id=booking.id) }}" 
+                                      onsubmit="return confirm('Отменить бронирование?')" class="d-inline">
+                                    <button type="submit" class="btn btn-outline-modern btn-sm text-danger">
+                                        <i class="fas fa-times me-1"></i> Отменить
+                                    </button>
+                                </form>
+                            {% endif %}
+                            <a href="{{ url_for('queue_cars', queue_id=booking.car.queue_id) }}" class="btn btn-outline-modern btn-sm">
+                                <i class="fas fa-car me-1"></i> К автомобилю
+                            </a>
+                            <a href="{{ url_for('queue_detail', queue_id=booking.car.queue_id) }}" class="btn btn-outline-modern btn-sm">
+                                <i class="fas fa-layer-group me-1"></i> К очереди
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted small d-flex justify-content-between">
+                        <span><i class="far fa-calendar-alt me-1"></i> Создано: {{ booking.created_at.strftime('%d.%m.%Y') }}</span>
+                        <span>
+                            {% if booking.start_date <= now and booking.end_date >= now %}
+                                <i class="fas fa-circle text-success" style="font-size: 0.5rem;"></i> Активно
+                            {% elif booking.start_date > now %}
+                                <i class="fas fa-circle text-primary" style="font-size: 0.5rem;"></i> Ожидает
+                            {% else %}
+                                <i class="fas fa-circle text-secondary" style="font-size: 0.5rem;"></i> Завершено
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info animate-fade-in">
+        <i class="fas fa-info-circle me-2"></i> У вас нет активных бронирований
+        <a href="{{ url_for('booking_cars') }}" class="alert-link ms-2">Перейти к бронированию</a>
+    </div>
+{% endif %}
+
+<!-- ===== ИСТОРИЯ БРОНИРОВАНИЙ ===== -->
+{% if history %}
+    <h5 class="fw-semibold mb-3">
+        <i class="fas fa-history me-2" style="color: var(--gray-500);"></i>
+        История бронирований
+        <span class="badge bg-light text-dark border-0 ms-2">{{ history|length }}</span>
+    </h5>
+    
+    <div class="table-modern animate-fade-in">
+        <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th>Автомобиль</th>
+                    <th>Госномер</th>
+                    <th>Период</th>
+                    <th>Статус</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in history %}
+                    <tr>
+                        <td>
+                            <span class="fw-medium">{{ booking.car.brand }} {{ booking.car.model }}</span>
+                        </td>
+                        <td>{{ booking.car.license_plate }}</td>
+                        <td class="text-muted small">
+                            {{ booking.start_date.strftime('%d.%m.%Y %H:%M') }} - {{ booking.end_date.strftime('%d.%m.%Y %H:%M') }}
+                        </td>
+                        <td>
+                            <span class="badge-status 
+                                {% if booking.status == 'completed' %}badge-status-closed
+                                {% elif booking.status == 'cancelled' %}badge-status-other
+                                {% else %}badge-status-work{% endif %}">
+                                {% if booking.status == 'completed' %}
+                                    ✅ Завершено
+                                {% elif booking.status == 'cancelled' %}
+                                    ❌ Отменено
+                                {% else %}
+                                    ⏳ В процессе
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('queue_cars', queue_id=booking.car.queue_id) }}" class="btn btn-outline-modern btn-sm">
+                                <i class="fas fa-car"></i>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}
+
+<style>
+.stat-card {
+    background: #ffffff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    transition: box-shadow 0.2s;
+}
+.stat-card:hover { box-shadow: var(--shadow-md); }
+.stat-card .stat-number {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--gray-900);
+}
+.stat-card .stat-label { font-size: 0.85rem; color: var(--gray-500); }
+.stat-card .stat-icon { font-size: 1.5rem; opacity: 0.6; }
+.stat-card.blue .stat-icon { color: var(--primary); }
+.stat-card.green .stat-icon { color: var(--primary); }
+.stat-card.yellow .stat-icon { color: #f59e0b; }
+.stat-card.red .stat-icon { color: #ef4444; }
+</style>
+{% endblock %}

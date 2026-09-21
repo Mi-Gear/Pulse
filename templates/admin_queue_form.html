@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0 fw-semibold">
+            <i class="fas fa-{{ 'edit' if queue else 'plus-circle' }} me-2" style="color: var(--primary);"></i>
+            {{ 'Редактирование очереди' if queue else 'Новая очередь' }}
+        </h4>
+        <span class="text-muted small">{{ queue.name if queue else 'Заполните форму' }}</span>
+    </div>
+
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card-modern animate-fade-in">
+            <div class="card-body">
+                <form method="POST" id="queueForm">
+                    <div class="mb-3">
+                        <label class="form-label-modern">Название <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control-modern" name="name" value="{{ queue.name if queue else '' }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label-modern">Описание</label>
+                        <textarea class="form-control-modern" name="description" rows="3">{{ queue.description if queue else '' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-modern">Почта</label>
+                        <input type="text" class="form-control-modern" name="name" value="{{ queue.mail if queue else '' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label-modern">Тип очереди</label>
+                        <select class="form-select-modern" name="queue_type">
+                            <option value="default" {% if queue and queue.queue_type == 'default' %}selected{% endif %}>Обычная</option>
+                            <option value="booking" {% if queue and queue.queue_type == 'booking' %}selected{% endif %}>Бронирование автомобилей</option>
+                        </select>
+                    </div>
+
+                    <!-- ===== АДМИНИСТРАТОРЫ ===== -->
+                    <div class="mb-3">
+                        <label class="form-label-modern">
+                            <i class="fas fa-crown me-1" style="color: #f59e0b;"></i> Администраторы очереди
+                        </label>
+                        <select class="form-select-modern" name="admin_ids" multiple style="min-height: 120px;">
+                            {% for user in users %}
+                                <option value="{{ user.id }}" 
+                                        {% if queue and user in queue.admins %}selected{% endif %}>
+                                    {{ user.full_name or user.username }}
+                                    {% if user.is_admin %}(Глобальный админ){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Удерживайте Ctrl для выбора нескольких администраторов</small>
+                    </div>
+
+                    {% if queue %}
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active" {% if queue.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">Очередь активна</label>
+                        </div>
+                    {% endif %}
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary-gradient">
+                            <i class="fas fa-save me-1"></i> {{ 'Сохранить' if queue else 'Создать' }}
+                        </button>
+                        <a href="{{ url_for('my_queues.my_queues') }}" class="btn btn-outline-modern">Отмена</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    {% if queue and queue.admins %}
+    <div class="col-lg-5">
+        <div class="card-modern">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-users-cog me-2" style="color: var(--primary);"></i>Текущие администраторы</span>
+            </div>
+            <div class="card-body">
+                {% for admin in queue.admins %}
+                    <div class="d-flex align-items-center gap-2 mb-2 p-2 bg-light-custom rounded-8">
+                        <span class="user-avatar-mini">{{ admin.full_name[0]|upper if admin.full_name else admin.username[0]|upper }}</span>
+                        <div>
+                            <div class="fw-medium">{{ admin.full_name or admin.username }}</div>
+                            <small class="text-muted">{{ admin.email }}</small>
+                        </div>
+                        {% if admin.is_admin %}
+                            <span class="badge-status badge-status-new ms-auto">Глобальный</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.user-avatar-mini {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+</style>
+{% endblock %}

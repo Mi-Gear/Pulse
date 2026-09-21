@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0 fw-semibold">
+            <i class="fas fa-car me-2" style="color: var(--primary);"></i>Доступные автомобили
+        </h4>
+        <span class="text-muted small">Бронирование автомобилей из всех очередей</span>
+    </div>
+    <a href="{{ url_for('my_bookings') }}" class="btn btn-outline-modern">
+        <i class="fas fa-calendar-check me-1"></i> Мои бронирования
+    </a>
+</div>
+
+<!-- ===== СТАТИСТИКА ===== -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card blue">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ cars|length }}</div>
+                    <div class="stat-label">Всего авто</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-car"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card green">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ cars|selectattr('car.is_available', 'equalto', true)|list|length }}</div>
+                    <div class="stat-label">Доступно</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<!-- ===== СПИСОК АВТОМОБИЛЕЙ ===== -->
+<div class="row g-3">
+    {% for item in cars %}
+        {% set car = item.car %}
+        {% set queue = item.queue %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card-modern h-100 {% if not car.is_available %}opacity-50{% endif %} animate-fade-in">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <h5 class="fw-semibold mb-0">{{ car.brand }} {{ car.model }}</h5>
+                            <span class="text-muted small">{{ queue.name }}</span>
+                        </div>
+                        <span class="badge-status {% if car.is_available %}badge-status-new{% else %}badge-status-other{% endif %}">
+                            {{ '✅ Доступен' if car.is_available else '🔴 Занят' }}
+                        </span>
+                    </div>
+                    
+                    <div class="mb-2">
+                        <span class="text-muted small">Госномер:</span>
+                        <strong>{{ car.license_plate }}</strong>
+                    </div>
+                    
+                    {% if car.year or car.color %}
+                        <div class="text-muted small mb-2">
+                            {% if car.year %}{{ car.year }} г.{% endif %}
+                            {% if car.color %}{% if car.year %} · {% endif %}{{ car.color }}{% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if car.description %}
+                        <p class="text-muted small mb-2">{{ car.description }}</p>
+                    {% endif %}
+                    
+                    <!-- Бронирование -->
+                    {% set booking = booking_map.get(car.id) %}
+                    {% if booking %}
+                        <div class="alert alert-info py-1 px-2 mb-2 small">
+                            <i class="fas fa-calendar-check me-1"></i>
+                            Забронирован: {{ booking.user.full_name or booking.user.username }}
+                            <br>
+                            📅 {{ booking.start_date.strftime('%d.%m %H:%M') }} - {{ booking.end_date.strftime('%d.%m %H:%M') }}
+                            {% if booking.user_id == current_user.id %}
+                                <form method="POST" action="{{ url_for('cancel_booking', booking_id=booking.id) }}" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-modern text-danger ms-2">
+                                        <i class="fas fa-times"></i> Отменить
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="d-flex flex-wrap gap-2">
+                        {% if car.is_available %}
+                            <button class="btn btn-primary-gradient btn-sm" data-bs-toggle="modal" data-bs-target="#bookModal{{ car.id }}">
+                                <i class="fas fa-calendar-plus me-1"></i> Забронировать
+                            </button>
+                        {% else %}
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                <i class="fas fa-clock me-1"></i> Занята
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer text-muted small">
+                    <i class="far fa-calendar-alt me-1"></i> Добавлен: {{ car.created_at.strftime('%d.%m.%Y') }}
+                    <span class="float-end">
+                        <i class="fas fa-layer-group me-1"></i> {{ queue.name }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ===== МОДАЛЬНОЕ ОКНО ДЛЯ БРОНИРОВАНИЯ ===== -->
+        <div class="modal fade" id="bookModal{{ car.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-calendar-plus me-2" style="color: var(--primary);"></i>
+                            Бронирование: {{ car.full_name }}
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('book_car', car_id=car.id) }}">
+                        <input type="hidden" name="redirect" value="booking_cars">
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label class="form-label-modern">Очередь</label>
+                                <input type="text" class="form-control-modern" value="{{ queue.name }}" disabled>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label-modern">Автомобиль</label>
+                                <input type="text" class="form-control-modern" value="{{ car.full_name }}" disabled>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label-modern">Дата и время начала *</label>
+                                <input type="datetime-local" class="form-control-modern" name="start_date" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label-modern">Дата и время окончания *</label>
+                                <input type="datetime-local" class="form-control-modern" name="end_date" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label-modern">Цель поездки</label>
+                                <textarea class="form-control-modern" name="purpose" rows="2" placeholder="Куда и зачем..."></textarea>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-modern" data-bs-dismiss="modal">Отмена</button>
+                            <button type="submit" class="btn btn-primary-gradient">
+                                <i class="fas fa-check me-1"></i> Забронировать
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="col-12">
+            <div class="card-modern">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-car mb-3" style="font-size: 2rem; color: #cbd5e0;"></i>
+                    <p class="text-muted">Нет доступных автомобилей для бронирования</p>
+                    <p class="text-muted small">Создайте очередь типа "Бронирование автомобилей" и добавьте автомобили</p>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<style>
+.stat-card {
+    background: #ffffff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    transition: box-shadow 0.2s;
+}
+.stat-card:hover { box-shadow: var(--shadow-md); }
+.stat-card .stat-number {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--gray-900);
+}
+.stat-card .stat-label { font-size: 0.85rem; color: var(--gray-500); }
+.stat-card .stat-icon { font-size: 1.5rem; opacity: 0.6; }
+.stat-card.blue .stat-icon { color: var(--primary); }
+.stat-card.green .stat-icon { color: var(--primary); }
+.stat-card.yellow .stat-icon { color: #f59e0b; }
+.stat-card.red .stat-icon { color: #ef4444; }
+</style>
+{% endblock %}

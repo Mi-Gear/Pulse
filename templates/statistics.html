@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0 fw-semibold">
+            <i class="fas fa-chart-bar me-2" style="color: var(--primary);"></i>Статистика
+        </h4>
+        <span class="text-muted small">Аналитика по заявкам</span>
+    </div>
+    <div>
+        <button class="btn btn-success-gradient" onclick="exportExcel()">
+            <i class="fas fa-file-excel me-1"></i> Выгрузить в Excel
+        </button>
+    </div>
+</div>
+
+<!-- ===== ФИЛЬТРЫ ===== -->
+<div class="card-modern mb-4 animate-fade-in">
+    <div class="card-body py-3">
+        <form id="filterForm" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label-modern small">Период с</label>
+                <input type="date" class="form-control-modern" name="start_date" id="startDate">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label-modern small">Период по</label>
+                <input type="date" class="form-control-modern" name="end_date" id="endDate">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label-modern small">Очередь</label>
+                <select class="form-select-modern" name="queue_id" id="queueFilter">
+                    <option value="">Все очереди</option>
+                    {% for queue in queues %}
+                        <option value="{{ queue.id }}">{{ queue.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label-modern small">Статус</label>
+                <select class="form-select-modern" name="status" id="statusFilter">
+                    <option value="all">Все</option>
+                    <option value="active">Активные</option>
+                    <option value="Новая">Новая</option>
+                    <option value="В работе">В работе</option>
+                    <option value="Закрыта">Закрыта</option>
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="button" class="btn btn-primary-gradient w-100" onclick="applyFilters()">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== ГРАФИКИ ===== -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card-modern">
+            <div class="card-header">
+                <i class="fas fa-circle me-2" style="color: var(--primary);"></i>Заявки по статусам
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card-modern">
+            <div class="card-header">
+                <i class="fas fa-flag me-2" style="color: var(--primary);"></i>Заявки по приоритетам
+            </div>
+            <div class="card-body">
+                <canvas id="priorityChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        <div class="card-modern">
+            <div class="card-header">
+                <i class="fas fa-layer-group me-2" style="color: var(--primary);"></i>Заявки по очередям
+            </div>
+            <div class="card-body">
+                <canvas id="queueChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card-modern">
+            <div class="card-header">
+                <i class="fas fa-calendar-alt me-2" style="color: var(--primary);"></i>Заявки по дням
+            </div>
+            <div class="card-body">
+                <canvas id="dailyChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== СТАТИСТИКА ПОЛЬЗОВАТЕЛЕЙ ===== -->
+<div class="card-modern">
+    <div class="card-header">
+        <i class="fas fa-users me-2" style="color: var(--primary);"></i>Статистика пользователей
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern mb-0">
+                <thead>
+                    <tr>
+                        <th>Пользователь</th>
+                        <th class="text-center">Создано</th>
+                        <th class="text-center">Закрыто</th>
+                        <th class="text-center">Назначено</th>
+                        <th class="text-center">Средняя оценка</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                        <tr>
+                            <td>{{ user.full_name or user.username }}</td>
+                            <td class="text-center">{{ user.created_tickets|length }}</td>
+                            <td class="text-center">
+                                {% set closed = user.created_tickets|selectattr('status', 'equalto', 'Закрыта')|list|length %}
+                                {{ closed }}
+                            </td>
+                            <td class="text-center">{{ user.assigned_tickets|length }}</td>
+                            <td class="text-center">
+                                {% set rated = user.created_tickets|selectattr('rating')|list %}
+                                {% if rated %}
+                                    {{ (rated|sum(attribute='rating') / rated|length)|round(1) }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ===== ИНИЦИАЛИЗАЦИЯ ГРАФИКОВ =====
+let statusChart, priorityChart, queueChart, dailyChart;
+
+function initCharts(data) {
+    // Цветовая схема
+    const colors = {
+        green: '#10b981',
+        blue: '#3b82f6',
+        yellow: '#f59e0b',
+        red: '#ef4444',
+        purple: '#8b5cf6',
+        pink: '#ec4899',
+        orange: '#f97316',
+        teal: '#14b8a6'
+    };
+    
+    // Статусы
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    if (statusChart) statusChart.destroy();
+    statusChart = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(data.status),
+            datasets: [{
+                data: Object.values(data.status),
+                backgroundColor: [colors.blue, colors.yellow, colors.green],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+    
+    // Приоритеты
+    const priorityCtx = document.getElementById('priorityChart').getContext('2d');
+    if (priorityChart) priorityChart.destroy();
+    priorityChart = new Chart(priorityCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(data.priority),
+            datasets: [{
+                label: 'Заявки',
+                data: Object.values(data.priority),
+                backgroundColor: [colors.green, colors.yellow, colors.red],
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    
+    // Очереди
+    const queueCtx = document.getElementById('queueChart').getContext('2d');
+    if (queueChart) queueChart.destroy();
+    const queueColors = [colors.blue, colors.green, colors.purple, colors.orange, colors.pink];
+    queueChart = new Chart(queueCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(data.queues),
+            datasets: [{
+                label: 'Заявки',
+                data: Object.values(data.queues),
+                backgroundColor: queueColors.slice(0, Object.keys(data.queues).length),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+    
+    // Ежедневно
+    const dailyCtx = document.getElementById('dailyChart').getContext('2d');
+    if (dailyChart) dailyChart.destroy();
+    dailyChart = new Chart(dailyCtx, {
+        type: 'line',
+        data: {
+            labels: Object.keys(data.daily),
+            datasets: [{
+                label: 'Заявки',
+                data: Object.values(data.daily),
+                borderColor: colors.green,
+                backgroundColor: colors.green + '20',
+                fill: true,
+                tension: 0.3,
+                pointBackgroundColor: colors.green,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+}
+
+// ===== ЗАГРУЗКА ДАННЫХ =====
+function loadChartData() {
+    fetch('/api/statistics/chart-data')
+        .then(response => response.json())
+        .then(data => {
+            initCharts(data);
+        });
+}
+
+// ===== ПРИМЕНЕНИЕ ФИЛЬТРОВ =====
+function applyFilters() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const queueId = document.getElementById('queueFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    
+    let url = '/api/statistics/chart-data?';
+    if (startDate) url += `start_date=${startDate}&`;
+    if (endDate) url += `end_date=${endDate}&`;
+    if (queueId) url += `queue_id=${queueId}&`;
+    if (status) url += `status=${status}&`;
+    
+    fetch(url)
+        .then(response => response.json())
+        .then(data => initCharts(data));
+}
+
+// ===== ЭКСПОРТ В EXCEL =====
+function exportExcel() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const queueId = document.getElementById('queueFilter').value;
+    const status = document.getElementById('statusFilter').value;
+    
+    let url = '/api/statistics/export?';
+    if (startDate) url += `start_date=${startDate}&`;
+    if (endDate) url += `end_date=${endDate}&`;
+    if (queueId) url += `queue_id=${queueId}&`;
+    if (status) url += `status=${status}&`;
+    
+    window.location.href = url;
+}
+
+// ===== ЗАГРУЗКА =====
+document.addEventListener('DOMContentLoaded', function() {
+    loadChartData();
+    
+    // Авто-применение фильтров при изменении
+    document.querySelectorAll('#filterForm select, #filterForm input').forEach(el => {
+        el.addEventListener('change', applyFilters);
+    });
+});
+
+// ===== ОБНОВЛЕНИЕ ПРИ РЕСАЙЗЕ =====
+window.addEventListener('resize', function() {
+    if (statusChart) statusChart.resize();
+    if (priorityChart) priorityChart.resize();
+    if (queueChart) queueChart.resize();
+    if (dailyChart) dailyChart.resize();
+});
+</script>
+
+<style>
+.table-modern thead th {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #64748b;
+    padding: 10px 12px;
+}
+.table-modern tbody td {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+}
+</style>
+{% endblock %}

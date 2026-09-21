@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-3">
+            <a href="{{ url_for('my_queues.my_queues') if current_user.admin_queues else url_for('admin_queues') }}" class="btn btn-outline-modern btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> Назад
+            </a>
+            <div>
+                <h4 class="mb-0 fw-semibold">
+                    <i class="fas fa-layer-group me-2" style="color: var(--primary);"></i>
+                    {{ queue.name }}
+                </h4>
+                <span class="text-muted small">{{ queue.description or 'Нет описания' }}</span>
+            </div>
+        </div>
+    </div>
+    <div>
+        <span class="badge-status {% if queue.is_active %}badge-status-new{% else %}badge-status-other{% endif %}">
+            {{ 'Активна' if queue.is_active else 'Неактивна' }}
+        </span>
+        {% if queue.queue_type == 'booking' %}
+            <a href="{{ url_for('queue_cars', queue_id=queue.id) }}" class="btn btn-primary-gradient btn-sm ms-2">
+                <i class="fas fa-car me-1"></i> Автомобили
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ===== СТАТИСТИКА ===== -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card blue">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ total_tickets }}</div>
+                    <div class="stat-label">Всего заявок</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-ticket-alt"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card green">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ open_tickets }}</div>
+                    <div class="stat-label">Открытых</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-folder-open"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card yellow">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ closed_tickets }}</div>
+                    <div class="stat-label">Закрытых</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card red">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="stat-number">{{ high_priority }}</div>
+                    <div class="stat-label">Высокий приоритет</div>
+                </div>
+                <div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- ===== СПИСОК ЗАЯВОК ===== -->
+    <div class="col-lg-8">
+        <div class="card-modern">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-list me-2" style="color: var(--primary);"></i>Заявки очереди</span>
+                <span class="text-muted small">{{ tickets|length }} заявок</span>
+            </div>
+            <div class="card-body">
+                <!-- ===== КРАСИВЫЕ ФИЛЬТРЫ ===== -->
+                <div class="card-modern mb-3">
+                    <div class="card-body py-2">
+                        <form method="GET" action="{{ url_for('queue_detail.queue_detail', queue_id=queue.id) }}" class="row g-2 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label-modern small">Поиск</label>
+                                <div class="d-flex gap-1">
+                                    <input type="text" class="form-control-modern" name="search" value="{{ search_query }}" placeholder="№ или название" style="flex:1;">
+                                    <button class="btn btn-primary-gradient" type="submit" style="white-space:nowrap;">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label-modern small">Приоритет</label>
+                                <select class="form-select-modern" name="priority" onchange="this.form.submit()">
+                                    <option value="">Все</option>
+                                    <option value="Низкий" {% if priority_filter == 'Низкий' %}selected{% endif %}>🟢 Низкий</option>
+                                    <option value="Средний" {% if priority_filter == 'Средний' %}selected{% endif %}>🟡 Средний</option>
+                                    <option value="Высокий" {% if priority_filter == 'Высокий' %}selected{% endif %}>🔴 Высокий</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label-modern small">Ответственный</label>
+                                <select class="form-select-modern" name="assignee" onchange="this.form.submit()">
+                                    <option value="">Все</option>
+                                    <option value="me" {% if assignee_filter == 'me' %}selected{% endif %}>👤 Я</option>
+                                    <option value="unassigned" {% if assignee_filter == 'unassigned' %}selected{% endif %}>❌ Без отв.</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label-modern small">Статус</label>
+                                <select class="form-select-modern" name="status" onchange="this.form.submit()">
+                                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>📂 Активные</option>
+                                    <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>✅ Закрытые</option>
+                                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>📋 Все</option>
+                                    <option value="Новая" {% if status_filter == 'Новая' %}selected{% endif %}>🆕 Новая</option>
+                                    <option value="В работе" {% if status_filter == 'В работе' %}selected{% endif %}>⚙️ В работе</option>
+                                </select>
+                            </div>
+                            <div class="col-md-1">
+                                <a href="{{ url_for('queue_detail.queue_detail', queue_id=queue.id) }}" class="btn btn-outline-modern w-100" title="Сбросить">
+                                    <i class="fas fa-undo"></i>
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                {% if tickets %}
+                    <div class="table-modern">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>№</th>
+                                    <th>Название</th>
+                                    <th>Статус</th>
+                                    <th>Приоритет</th>
+                                    <th>Ответственные</th>
+                                    <th>Дата</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ticket in tickets %}
+                                    <tr>
+                                        <td><span class="fw-medium">{{ ticket.ticket_number }}</span></td>
+                                        <td>
+                                            <a href="{{ url_for('tickets.ticket_detail', ticket_id=ticket.id) }}" class="fw-medium text-dark">
+                                                {{ ticket.title }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <span class="badge-status
+                                                {% if ticket.status == 'Новая' %}badge-status-new
+                                                {% elif ticket.status == 'В работе' %}badge-status-work
+                                                {% elif ticket.status == 'Закрыта' %}badge-status-closed
+                                                {% else %}badge-status-other{% endif %}">
+                                                {{ ticket.status }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="priority-{{ ticket.priority.lower() }}">
+                                                {{ ticket.priority }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% for assignee in ticket.assignees %}
+                                                <span class="badge bg-light text-dark border-0">{{ assignee.username }}</span>
+                                            {% else %}
+                                                <span class="text-muted">—</span>
+                                            {% endfor %}
+                                        </td>
+                                        <td class="text-muted small">
+                                            {{ ticket.created_at.strftime('%d.%m.%Y') }}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('tickets.ticket_detail', ticket_id=ticket.id) }}" class="btn btn-outline-modern btn-sm">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-inbox mb-2" style="font-size: 1.5rem; display: block; color: #cbd5e0;"></i>
+                        Нет заявок
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- ===== ИНФОРМАЦИЯ ОБ ОЧЕРЕДИ ===== -->
+    <div class="col-lg-4">
+        <div class="card-modern">
+            <div class="card-header">
+                <i class="fas fa-info-circle me-2" style="color: var(--primary);"></i>Информация
+            </div>
+            <div class="card-body">
+                <div class="queue-info">
+                    <div class="queue-info-item">
+                        <span class="queue-info-label">Название</span>
+                        <span class="queue-info-value">{{ queue.name }}</span>
+                    </div>
+                    <div class="queue-info-item">
+                        <span class="queue-info-label">Описание</span>
+                        <span class="queue-info-value">{{ queue.description or '—' }}</span>
+                    </div>
+                    <div class="queue-info-item">
+                        <span class="queue-info-label">Тип</span>
+                        <span class="queue-info-value">
+                            {% if queue.queue_type == 'booking' %}
+                                <span class="badge-status badge-status-new">🚗 Бронирование</span>
+                            {% else %}
+                                <span class="badge-status badge-status-other">📋 Обычная</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="queue-info-item">
+                        <span class="queue-info-label">Статус</span>
+                        <span class="queue-info-value">
+                            <span class="badge-status {% if queue.is_active %}badge-status-new{% else %}badge-status-other{% endif %}">
+                                {{ 'Активна' if queue.is_active else 'Неактивна' }}
+                            </span>
+                        </span>
+                    </div>
+                    <div class="queue-info-item">
+                        <span class="queue-info-label">Создана</span>
+                        <span class="queue-info-value">{{ queue.created_at.strftime('%d.%m.%Y %H:%M') }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ===== АДМИНИСТРАТОРЫ ===== -->
+        <div class="card-modern mt-3">
+            <div class="card-header">
+                <i class="fas fa-crown me-2" style="color: #f59e0b;"></i>Администраторы
+            </div>
+            <div class="card-body">
+                {% if admins %}
+                    {% for admin in admins %}
+                        <div class="d-flex align-items-center gap-2 mb-2 p-2 bg-light-custom rounded-8">
+                            <span class="avatar-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                {{ admin.full_name[0]|upper if admin.full_name else admin.username[0]|upper }}
+                            </span>
+                            <div>
+                                <div class="fw-medium">{{ admin.full_name or admin.username }}</div>
+                                <small class="text-muted">{{ admin.email }}</small>
+                            </div>
+                            {% if admin.is_admin %}
+                                <span class="badge-status badge-status-new ms-auto">Глобальный</span>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted text-center py-2">Нет администраторов</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- ===== УЧАСТНИКИ ===== -->
+        <div class="card-modern mt-3">
+            <div class="card-header">
+                <i class="fas fa-users me-2" style="color: var(--primary);"></i>Участники
+            </div>
+            <div class="card-body">
+                {% if members %}
+                    <div style="max-height: 200px; overflow-y: auto;">
+                        {% for member in members %}
+                            <div class="d-flex align-items-center gap-2 mb-1 p-1 rounded-8">
+                                <span class="avatar-sm">
+                                    {{ member.full_name[0]|upper if member.full_name else member.username[0]|upper }}
+                                </span>
+                                <span class="small">{{ member.full_name or member.username }}</span>
+                                {% if member in admins %}
+                                    <span class="badge bg-light text-dark border-0 ms-auto">⭐</span>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center py-2">Нет участников</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- ===== КНОПКА СОЗДАТЬ ЗАЯВКУ ===== -->
+        <div class="card-modern mt-3">
+            <div class="card-body">
+                <a href="{{ url_for('tickets.create_ticket') }}?queue_id={{ queue.id }}" class="btn btn-success-gradient w-100">
+                    <i class="fas fa-plus me-1"></i> Создать заявку
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-card {
+    background: #ffffff;
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    transition: box-shadow 0.2s;
+}
+.stat-card:hover { box-shadow: var(--shadow-md); }
+.stat-card .stat-number {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--gray-900);
+}
+.stat-card .stat-label { font-size: 0.85rem; color: var(--gray-500); }
+.stat-card .stat-icon { font-size: 1.5rem; opacity: 0.6; }
+.stat-card.blue .stat-icon { color: var(--primary); }
+.stat-card.green .stat-icon { color: var(--primary); }
+.stat-card.yellow .stat-icon { color: #f59e0b; }
+.stat-card.red .stat-icon { color: #ef4444; }
+
+.avatar-sm {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--primary-gradient);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.queue-info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.queue-info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+.queue-info-item:last-child {
+    border-bottom: none;
+}
+.queue-info-label {
+    font-weight: 500;
+    color: #64748b;
+    font-size: 0.85rem;
+}
+.queue-info-value {
+    font-weight: 500;
+    color: #1a202c;
+    font-size: 0.9rem;
+}
+</style>
+{% endblock %}

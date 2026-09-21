@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-0 fw-semibold">
+            <i class="fas fa-tasks me-2" style="color: var(--primary);"></i>Назначенные мне заявки
+        </h4>
+        <span class="text-muted small">{{ tickets|length }} заявок</span>
+    </div>
+</div>
+
+<!-- ===== СТАТИСТИКА ===== -->
+<div class="row g-2 mb-3">
+    <div class="col-auto">
+        <a href="{{ url_for('tickets.assigned_tickets', status='active') }}" class="btn btn-sm {% if status_filter == 'active' %}btn-primary-gradient{% else %}btn-outline-modern{% endif %}">
+            <i class="fas fa-folder-open me-1"></i> Активные ({{ active_count }})
+        </a>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('tickets.assigned_tickets', status='closed') }}" class="btn btn-sm {% if status_filter == 'closed' %}btn-primary-gradient{% else %}btn-outline-modern{% endif %}">
+            <i class="fas fa-check-circle me-1"></i> Закрытые ({{ closed_count }})
+        </a>
+    </div>
+    <div class="col-auto">
+        <a href="{{ url_for('tickets.assigned_tickets', status='all') }}" class="btn btn-sm {% if status_filter == 'all' %}btn-primary-gradient{% else %}btn-outline-modern{% endif %}">
+            <i class="fas fa-list me-1"></i> Все ({{ total_count }})
+        </a>
+    </div>
+</div>
+
+<!-- ===== ФИЛЬТРЫ ===== -->
+<div class="card-modern mb-3 animate-fade-in">
+    <div class="card-body py-2">
+        <form method="GET" action="{{ url_for('tickets.assigned_tickets') }}" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label-modern small">Поиск</label>
+                <input type="text" class="form-control-modern" name="search" value="{{ search_query }}" placeholder="№ или название">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label-modern small">Приоритет</label>
+                <select class="form-select-modern" name="priority">
+                    <option value="">Все</option>
+                    <option value="Низкий" {% if priority_filter == 'Низкий' %}selected{% endif %}>🟢 Низкий</option>
+                    <option value="Средний" {% if priority_filter == 'Средний' %}selected{% endif %}>🟡 Средний</option>
+                    <option value="Высокий" {% if priority_filter == 'Высокий' %}selected{% endif %}>🔴 Высокий</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label-modern small">Статус</label>
+                <select class="form-select-modern" name="status">
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Активные</option>
+                    <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Закрытые</option>
+                    <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Все</option>
+                    <option value="Новая" {% if status_filter == 'Новая' %}selected{% endif %}>Новая</option>
+                    <option value="В работе" {% if status_filter == 'В работе' %}selected{% endif %}>В работе</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label-modern small">Создал</label>
+                <input type="text" class="form-control-modern" name="created_by" value="{{ request.args.get('created_by', '') }}" placeholder="Имя создателя">
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary-gradient w-100"><i class="fas fa-search"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== ТАБЛИЦА ЗАЯВОК ===== -->
+<div class="table-modern animate-fade-in">
+    <table class="table mb-0">
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Название</th>
+                <th>Статус</th>
+                <th>Приоритет</th>
+                <th>Очередь</th>
+                <th>Создал</th>
+                <th>Дата</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+                <tr>
+                    <td><span class="fw-medium">{{ ticket.ticket_number }}</span></td>
+                    <td><a href="{{ url_for('tickets.ticket_detail', ticket_id=ticket.id) }}" class="fw-medium text-dark">{{ ticket.title }}</a></td>
+                    <td>
+                        <span class="badge-status
+                            {% if ticket.status == 'Новая' %}badge-status-new
+                            {% elif ticket.status == 'В работе' %}badge-status-work
+                            {% elif ticket.status == 'Закрыта' %}badge-status-closed
+                            {% else %}badge-status-other{% endif %}">
+                            {{ ticket.status }}
+                        </span>
+                    </td>
+                    <td><span class="priority-{{ ticket.priority.lower() }}">{{ ticket.priority }}</span></td>
+                    <td>{% if ticket.queue %}{{ ticket.queue.name }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                    <td>{{ ticket.creator.full_name or ticket.creator.username if ticket.creator else '—' }}</td>
+                    <td class="text-muted small">{{ ticket.created_at.strftime('%d.%m.%Y %H:%M') }}</td>
+                    <td><a href="{{ url_for('tickets.ticket_detail', ticket_id=ticket.id) }}" class="btn btn-outline-modern btn-sm"><i class="fas fa-arrow-right"></i></a></td>
+                </tr>
+            {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-4 text-muted">
+                        <i class="fas fa-inbox mb-2" style="font-size: 1.5rem; display: block; color: #cbd5e0;"></i>
+                        Нет заявок
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
