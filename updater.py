@@ -34,7 +34,7 @@ GITHUB_REPO    = "Mi-Gear/Pulse"
 GITHUB_BRANCH  = os.environ.get("GITHUB_BRANCH", "main")
 GITHUB_TOKEN   = "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"
 CHECK_INTERVAL = int(os.environ.get("CHECK_INTERVAL", "10"))
-AUTO_UPDATE    = False
+AUTO_UPDATE    = True
 
 
 # ---------- Логгер ----------
