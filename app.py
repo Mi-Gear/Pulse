@@ -238,4 +238,5 @@ if __name__ == '__main__':
     finally:
         if update_checker:
             update_checker.stop()
+    print(2)
     
