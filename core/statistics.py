@@ -13,7 +13,7 @@ stat_bp = Blueprint("statistics",__name__)
 def statistics():
     queues = Queue.query.all()
     users = User.query.all()
-    return render_template('statistics.html', queues=queues, users=users)
+    return render_template('statistics.html', queues=queues, users=users, ticket = Ticket)
 
 @stat_bp.route('/api/statistics/export')
 @login_required

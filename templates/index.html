@@ -4,7 +4,7 @@
 
 <div class="index-page">
 
-    {% if current_user.queues | selectattr('id', 'equalto', 10) | list %}
+    {% if current_user.queues | selectattr('id', 'equalto', 14) | list %}
     <!-- ===== SIDEBAR ===== -->
     <aside class="index-sidebar">
         {% include 'sidebar.html' %}
@@ -56,7 +56,7 @@
                 </a>
             </div>
 
-
+ {% if current_user.queues[0].id == 10 %}
             <!-- Назначенные мне -->
             <div class="col-md-4">
                 <a href="{{ url_for('tickets.assigned_tickets') }}"
@@ -109,9 +109,9 @@
                     </div>
                 </a>
             </div>
+ {%endif%}
 
         </div>
-
 
         <!-- ===== ПОСЛЕДНИЕ ОБНОВЛЕНИЯ ===== -->
         <div class="mt-4">

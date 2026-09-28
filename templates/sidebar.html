@@ -27,35 +27,6 @@
                 <span class="badge-count">{{ closed_tickets_count|default(0) }}</span>
             </a>
         </div>
-        {%if current_user.is_admin%}
-
-        <div class="sidebar-divider"></div>
-
-        <!-- Типы заявок -->
-        <div class="sidebar-section">
-            <div class="sidebar-title">
-                <i class="fas fa-tags me-1"></i> ТИПЫ ЗАЯВОК
-            </div>
-            <div class="sidebar-types">
-                {% for type in ticket_types %}
-                    <a href="{{ url_for('tickets.my_tickets', type_id=type.id) }}" 
-                       class="sidebar-type-item {{ 'active' if request.args.get('type_id')|int == type.id }}">
-                        <span class="type-dot" style="background: {{ type.color or '#6c757d' }};"></span>
-                        {{ type.name }}
-                        <span class="type-count">{{ type.tickets|selectattr('status', 'ne', 'Закрыта')|list|length }}</span>
-                    </a>
-                {% else %}
-                    <div class="sidebar-empty">
-                        <i class="fas fa-plus-circle"></i> 
-                        <span>Нет типов заявок</span>
-                    </div>
-                {% endfor %}
-                
-            </div>
-        </div>
-
-        <div class="sidebar-divider"></div>
-        {%endif%}
 
         <!-- Быстрые действия -->
         <div class="sidebar-section">

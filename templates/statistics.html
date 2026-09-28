@@ -55,6 +55,38 @@
     </div>
 </div>
 
+<!-- ===== СТАТИСТИКА ПОЛЬЗОВАТЕЛЕЙ ===== -->
+<div class="card-modern">
+    <div class="card-header">
+        <i class="fas fa-users me-2" style="color: var(--primary);"></i>Статистика пользователей
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-modern mb-0">
+                <thead>
+                    <tr>
+                        <th>Функциональные очереди</th>
+                        <th class="text-center">Назначено</th>
+                        <th class="text-center">Выполнено</th>
+                        <th class="text-center">Средняя оценка</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for queue in queues %}
+                        {% if queue.id == 10 %}
+                        <tr>
+                            <td>{{ queue.name }}</td>
+                            <td class="text-center">{{ ticket.query.filter(ticket.queue_id.in_([10])).filter_by(status="Новая").count()+ticket.query.filter(ticket.queue_id.in_([10])).filter_by(status="В работе").count()}}</td>
+                            <td class="text-center">{{ ticket.query.filter(ticket.queue_id.in_([10])).filter_by(status="Закрыта").count() }}</td>
+                        </tr>
+                        {% endif %}
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- ===== ГРАФИКИ ===== -->
 <div class="row g-4 mb-4">
     <div class="col-md-6">
@@ -62,8 +94,8 @@
             <div class="card-header">
                 <i class="fas fa-circle me-2" style="color: var(--primary);"></i>Заявки по статусам
             </div>
-            <div class="card-body">
-                <canvas id="statusChart" height="200"></canvas>
+            <div class="card-body" style="height: 535px; align-items:center">
+                <canvas id="statusChart"></canvas>
             </div>
         </div>
     </div>
@@ -73,7 +105,7 @@
                 <i class="fas fa-flag me-2" style="color: var(--primary);"></i>Заявки по приоритетам
             </div>
             <div class="card-body">
-                <canvas id="priorityChart" height="200"></canvas>
+                <canvas id="priorityChart" height="250"></canvas>
             </div>
         </div>
     </div>
@@ -102,48 +134,7 @@
     </div>
 </div>
 
-<!-- ===== СТАТИСТИКА ПОЛЬЗОВАТЕЛЕЙ ===== -->
-<div class="card-modern">
-    <div class="card-header">
-        <i class="fas fa-users me-2" style="color: var(--primary);"></i>Статистика пользователей
-    </div>
-    <div class="card-body">
-        <div class="table-responsive">
-            <table class="table table-modern mb-0">
-                <thead>
-                    <tr>
-                        <th>Пользователь</th>
-                        <th class="text-center">Создано</th>
-                        <th class="text-center">Закрыто</th>
-                        <th class="text-center">Назначено</th>
-                        <th class="text-center">Средняя оценка</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                        <tr>
-                            <td>{{ user.full_name or user.username }}</td>
-                            <td class="text-center">{{ user.created_tickets|length }}</td>
-                            <td class="text-center">
-                                {% set closed = user.created_tickets|selectattr('status', 'equalto', 'Закрыта')|list|length %}
-                                {{ closed }}
-                            </td>
-                            <td class="text-center">{{ user.assigned_tickets|length }}</td>
-                            <td class="text-center">
-                                {% set rated = user.created_tickets|selectattr('rating')|list %}
-                                {% if rated %}
-                                    {{ (rated|sum(attribute='rating') / rated|length)|round(1) }}
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
+
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>

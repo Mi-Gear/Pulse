@@ -7,6 +7,7 @@ from datetime import datetime
 
 # Часовой пояс сервера - меняется ТОЛЬКО здесь в коде
 SERVER_TIMEZONE = 'Asia/Magadan'  # Можно менять на любой другой
+
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar', '7z'}
 # Список доступных поясов (только для справки, не для изменения)
 TIMEZONES = [
