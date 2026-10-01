@@ -1,0 +1,4 @@
+*
+!/instance
+!/instance/servicedesk.db
+!.gitignore
