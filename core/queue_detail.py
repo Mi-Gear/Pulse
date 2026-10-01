@@ -12,7 +12,7 @@ q_detail_bp = Blueprint("queue_detail",__name__)
 def queue_detail(queue_id):
     queue = Queue.query.get_or_404(queue_id)
     
-    if not current_user.is_admin and current_user not in queue.admins and current_user not in queue.members:
+    if not current_user.role == 0  and current_user not in queue.admins and current_user not in queue.members:
         abort(403)
     
     query = Ticket.query.filter_by(queue_id=queue.id)

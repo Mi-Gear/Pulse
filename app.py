@@ -6,6 +6,7 @@ from models import db, User, Ticket, Comment, Queue, Attachment, Car, Booking
 from datetime import datetime, timedelta
 from sqlalchemy import or_
 import traceback, json
+import requests
 
 
 
@@ -18,6 +19,7 @@ from core.statistics import stat_bp
 from core.queue_mgmt import queue_mgmt_bp
 from core.queue_detail import q_detail_bp
 from core.tickets import tickets_bp
+from core.api import api_bp
 
 
 from config import (
@@ -50,6 +52,7 @@ db.init_app(app.app)
 login_manager = LoginManager()
 login_manager.init_app(app.app)
 login_manager.login_view = 'login.login'
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -213,7 +216,7 @@ def profile():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        app.register_blueprints([login_bp,my_q_bp,user_mgmt_bp,stat_bp,queue_mgmt_bp,q_detail_bp,tickets_bp])
+        app.register_blueprints([login_bp,my_q_bp,user_mgmt_bp,stat_bp,queue_mgmt_bp,q_detail_bp,tickets_bp,api_bp])
         
         if User.query.count() == 0:
             admin = User(

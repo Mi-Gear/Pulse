@@ -259,7 +259,7 @@
                                 <div class="fw-medium">{{ admin.full_name or admin.username }}</div>
                                 <small class="text-muted">{{ admin.email }}</small>
                             </div>
-                            {% if admin.is_admin %}
+                            {% if admin.role == 0 %}
                                 <span class="badge-status badge-status-new ms-auto">Глобальный</span>
                             {% endif %}
                         </div>

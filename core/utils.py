@@ -6,14 +6,14 @@ from dataclasses import dataclass, field
 import asyncio
 
 def can_manage_queue(user, queue):
-    if user.is_admin:
+    if user.role == 0:
         return True
     if queue and user in queue.admins:
         return True
     return False
 
 def get_available_queues():
-    if current_user.is_authenticated and current_user.is_admin:
+    if current_user.is_authenticated and current_user.role == 0 :
         return Queue.query.filter_by(is_active=True).all()
     elif current_user.is_authenticated:
         return current_user.queues

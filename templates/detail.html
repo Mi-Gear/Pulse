@@ -153,13 +153,25 @@
                                 <div class="metro-request-icon">
                                     <i class="fas fa-ruler-combined"></i>
                                 </div>
+
                                 <div>
                                     <div class="metro-request-title">Оборудование</div>
                                 </div>
                             </div>
-                            <span class="metro-request-badge">
-                                {{ metro_type_labels.get(metro.request_type, metro.request_type) }}
-                            </span>
+
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="metro-request-badge">
+                                    {{ metro_type_labels.get(metro.request_type, metro.request_type) }}
+                                </span>
+
+                                <a
+                                    href="{{ url_for('tickets.metrologist_docx', ticket_id=ticket.id) }}"
+                                    class="btn btn-outline-modern btn-sm"
+                                    title="Скачать заявку Word"
+                                >
+                                    <i class="fas fa-file-word me-1"></i>
+                                </a>
+                            </div>
                         </div>
 
                         {% if metro_rows %}
@@ -183,8 +195,15 @@
                                                     {% if metro_labels.get(key) %}
                                                         {% set value = row.get(key) %}
                                                         <td>
+
+
+                                                            
                                                             {% if value is not none and value != '' %}
-                                                                {{ value }}
+                                                                {% if key == "registration_certificate"%}
+                                                                    <a href="{{ url_for('api.medical_product')}}?reg_number={{value}}">{{ value }}</a>
+                                                                {% else %}
+                                                                    {{ value }}
+                                                                {% endif %}
                                                             {% else %}
                                                                 <span class="metro-request-empty">—</span>
                                                             {% endif %}
@@ -204,6 +223,334 @@
                         {% endif %}
                     </div>
                 {% endif %}
+
+                <!-- ===== ПЕЧАТНАЯ ФОРМА МЕТРОЛОГА ===== -->
+
+{% if ticket.metrologist_request %}
+
+    {% set metro = ticket.metrologist_request %}
+    {% set metro_rows = metro.get_data() %}
+
+    <div id="metroPrintForm" class="metro-print-form">
+
+        <div class="metro-print-document">
+
+            <!-- Шапка -->
+
+            <div class="metro-print-header">
+
+                <div class="metro-print-org">
+                    {{ current_user.department or 'Организация' }}
+                </div>
+
+                <div class="metro-print-title">
+                    ЗАЯВКА
+                </div>
+
+                <div class="metro-print-subtitle">
+                    на {{ metro_type_labels.get(metro.request_type, metro.request_type)|lower }}
+                    медицинского оборудования
+                </div>
+
+            </div>
+
+
+            <!-- Основная информация -->
+
+            <table class="metro-print-info">
+
+                <tr>
+                    <td class="label">
+                        Номер заявки
+                    </td>
+
+                    <td>
+                        {{ ticket.ticket_number }}
+                    </td>
+
+                    <td class="label">
+                        Дата
+                    </td>
+
+                    <td>
+                        {% if ticket.created_at %}
+                            {{ ticket.created_at.strftime('%d.%m.%Y') }}
+                        {% else %}
+                            {{ current_date if current_date is defined else '' }}
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="label">
+                        Заявитель
+                    </td>
+
+                    <td colspan="3">
+                        {{ ticket.creator.full_name if ticket.creator else current_user.full_name }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td class="label">
+                        Очередь
+                    </td>
+
+                    <td colspan="3">
+                        {{ ticket.queue.name if ticket.queue else '—' }}
+                    </td>
+                </tr>
+
+            </table>
+
+
+            <!-- Оборудование -->
+
+            <div class="metro-print-section-title">
+                Сведения об оборудовании
+            </div>
+
+            {% if metro_rows %}
+
+                <table class="metro-print-equipment">
+
+                    <thead>
+                        <tr>
+                            <th>№</th>
+
+                            {% if metro_rows[0].get('equipment_name') is not none %}
+                                <th>Наименование оборудования</th>
+                            {% endif %}
+
+                            {% if metro_rows[0].get('inventory_number') is not none %}
+                                <th>Инвентарный номер</th>
+                            {% endif %}
+
+                            {% if metro_rows[0].get('serial_number') is not none %}
+                                <th>Заводской номер</th>
+                            {% endif %}
+
+                            {% if metro_rows[0].get('production_year') is not none %}
+                                <th>Год выпуска</th>
+                            {% endif %}
+
+                            {% if metro_rows[0].get('registration_certificate') is not none %}
+                                <th>Регистрационное удостоверение</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        {% for row in metro_rows %}
+
+                            <tr>
+
+                                <td>{{ loop.index }}</td>
+
+                                {% if metro_rows[0].get('equipment_name') is not none %}
+                                    <td>{{ row.get('equipment_name') or '—' }}</td>
+                                {% endif %}
+
+                                {% if metro_rows[0].get('inventory_number') is not none %}
+                                    <td>{{ row.get('inventory_number') or '—' }}</td>
+                                {% endif %}
+
+                                {% if metro_rows[0].get('serial_number') is not none %}
+                                    <td>{{ row.get('serial_number') or '—' }}</td>
+                                {% endif %}
+
+                                {% if metro_rows[0].get('production_year') is not none %}
+                                    <td>{{ row.get('production_year') or '—' }}</td>
+                                {% endif %}
+
+                                {% if metro_rows[0].get('registration_certificate') is not none %}
+                                    <td>{{ row.get('registration_certificate') or '—' }}</td>
+                                {% endif %}
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            {% endif %}
+
+
+            <!-- Дополнительные данные -->
+
+            {% for row in metro_rows %}
+
+                <div class="metro-print-details">
+
+                    {% if row.get('writeoff_justification') %}
+                        <div class="metro-print-field">
+                            <div class="metro-print-label">
+                                Обоснование целесообразности списания
+                            </div>
+
+                            <div class="metro-print-value">
+                                {{ row.get('writeoff_justification') }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+                    {% if row.get('purchase_justification') %}
+                        <div class="metro-print-field">
+                            <div class="metro-print-label">
+                                Обоснование целесообразности приобретения
+                            </div>
+
+                            <div class="metro-print-value">
+                                {{ row.get('purchase_justification') }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+                    {% if row.get('fault_description') %}
+                        <div class="metro-print-field">
+                            <div class="metro-print-label">
+                                Описание неисправности
+                            </div>
+
+                            <div class="metro-print-value">
+                                {{ row.get('fault_description') }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+                    {% if row.get('nkmi') %}
+                        <div class="metro-print-field">
+                            <div class="metro-print-label">
+                                НКМИ
+                            </div>
+
+                            <div class="metro-print-value">
+                                {{ row.get('nkmi') }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+                    {% if row.get('mz_order') %}
+                        <div class="metro-print-field">
+                            <div class="metro-print-label">
+                                Приказ МЗ РФ
+                            </div>
+
+                            <div class="metro-print-value">
+                                {{ row.get('mz_order') }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+                    {% if row.get('hazard_class') %}
+                        <div class="metro-print-field">
+                            <div class="metro-print-label">
+                                Класс опасности
+                            </div>
+
+                            <div class="metro-print-value">
+                                {{ row.get('hazard_class') }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+                    {% if row.get('service_period') %}
+                        <div class="metro-print-field">
+                            <div class="metro-print-label">
+                                Периодичность обслуживания согласно паспорта
+                            </div>
+
+                            <div class="metro-print-value">
+                                {{ row.get('service_period') }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+                    {% if row.get('verification_period') %}
+                        <div class="metro-print-field">
+                            <div class="metro-print-label">
+                                Периодичность поверки согласно паспорта
+                            </div>
+
+                            <div class="metro-print-value">
+                                {{ row.get('verification_period') }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+
+                    {% if row.get('last_verification_date') %}
+                        <div class="metro-print-field">
+                            <div class="metro-print-label">
+                                Дата последней поверки
+                            </div>
+
+                            <div class="metro-print-value">
+                                {{ row.get('last_verification_date') }}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+
+            <!-- Подписи -->
+
+            <div class="metro-print-signatures">
+
+                <div class="metro-print-signature">
+
+                    <div>
+                        Ответственный
+                    </div>
+
+                    <div class="signature-line"></div>
+
+                    <div class="signature-name">
+                        {{ ticket.creator.full_name if ticket.creator else '' }}
+                    </div>
+
+                </div>
+
+
+                <div class="metro-print-signature">
+
+                    <div>
+                        Метролог
+                    </div>
+
+                    <div class="signature-line"></div>
+
+                    <div class="signature-name">
+                        ______________________________
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="metro-print-footer">
+                Заявка № {{ ticket.ticket_number }}
+            </div>
+
+        </div>
+
+    </div>
+
+{% endif %}
 
                 <!-- ===== ВЛОЖЕНИЯ ===== -->
                 <div class="mt-4">
@@ -292,7 +639,7 @@
                                                 </form>
                                             {% endif %}
                                         {% endif %}
-                                        {% if current_user.is_admin or att.author_id == current_user.id %}
+                                        {% if current_user.role == 0 or att.author_id == current_user.id %}
                                             <form method="POST" action="{{ url_for('tickets.delete_attachment', attachment_id=att.id) }}" 
                                                   onsubmit="return confirm('Удалить файл «{{ att.filename }}»?')" class="d-inline">
                                                 <button type="submit" class="attachment-action-btn delete" title="Удалить">
@@ -341,7 +688,7 @@
                                 <label class="form-label-modern">Оцените работу</label>
                                 <div class="d-flex gap-2" id="rating">
                                     {% for i in range(1, 6) %}
-                                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="setRating({{ i }})">
+                                        <button type="button" class="btn btn-outline-warning btn-sm" onclick="setRating({i})">
                                             <i class="fas fa-star"></i>
                                         </button>
                                     {% endfor %}
@@ -593,7 +940,7 @@
                         </div>
                     </form>
 
-                    {% if current_user.is_admin or (ticket.queue and ticket.queue.admin_id == current_user.id) %}
+                    {% if current_user.role == 0 or (ticket.queue and ticket.queue.admin_id == current_user.id) %}
                         <form method="POST" action="{{ url_for('tickets.assign_ticket', ticket_id=ticket.id) }}" class="mb-3">
                             <label class="form-label-modern small">Назначить ответственных</label>
                             <div class="d-flex gap-2 flex-wrap">
@@ -619,7 +966,7 @@
 
                     
 
-                    {% if current_user.is_admin %}
+                    {% if current_user.role == 0 %}
                         <hr>
                         <form method="POST" action="{{ url_for('tickets.assign_queue', ticket_id=ticket.id) }}">
                             <label class="form-label-modern small">Изменить очередь</label>
@@ -951,18 +1298,18 @@ function removeFile(index) {
     font-size: 1rem;
     flex-shrink: 0;
 }
-.attachment-icon.pdf { background: #fee2e2; color: #dc2626; }
-.attachment-icon.doc { background: #dbeafe; color: #2563eb; }
-.attachment-icon.docx { background: #dbeafe; color: #2563eb; }
-.attachment-icon.xls { background: #dcfce7; color: #16a34a; }
-.attachment-icon.xlsx { background: #dcfce7; color: #16a34a; }
-.attachment-icon.png { background: #fef3c7; color: #d97706; }
-.attachment-icon.jpg { background: #fef3c7; color: #d97706; }
-.attachment-icon.jpeg { background: #fef3c7; color: #d97706; }
-.attachment-icon.gif { background: #fef3c7; color: #d97706; }
-.attachment-icon.zip { background: #f3e8ff; color: #7c3aed; }
-.attachment-icon.rar { background: #f3e8ff; color: #7c3aed; }
-.attachment-icon.7z { background: #f3e8ff; color: #7c3aed; }
+.attachment-icon.pdf     { background: #fee2e2; color: #dc2626; }
+.attachment-icon.doc     { background: #dbeafe; color: #2563eb; }
+.attachment-icon.docx    { background: #dbeafe; color: #2563eb; }
+.attachment-icon.xls     { background: #dcfce7; color: #16a34a; }
+.attachment-icon.xlsx    { background: #dcfce7; color: #16a34a; }
+.attachment-icon.png     { background: #fef3c7; color: #d97706; }
+.attachment-icon.jpg     { background: #fef3c7; color: #d97706; }
+.attachment-icon.jpeg    { background: #fef3c7; color: #d97706; }
+.attachment-icon.gif     { background: #fef3c7; color: #d97706; }
+.attachment-icon.zip     { background: #f3e8ff; color: #7c3aed; }
+.attachment-icon.rar     { background: #f3e8ff; color: #7c3aed; }
+.attachment-icon.7z      { background: #f3e8ff; color: #7c3aed; }
 .attachment-icon.default { background: #f1f5f9; color: #64748b; }
 
 .attachment-info {
@@ -1355,5 +1702,212 @@ function removeFile(index) {
         margin-left: 52px;
     }
 }
+/* =========================================
+   ПЕЧАТНАЯ ФОРМА МЕТРОЛОГА
+   ========================================= */
+
+.metro-print-form {
+    display: none;
+}
+
+.metro-print-document {
+    background: #fff;
+    color: #111;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.metro-print-header {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.metro-print-org {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 25px;
+}
+
+.metro-print-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.metro-print-subtitle {
+    font-size: 14px;
+    margin-top: 5px;
+}
+
+.metro-print-info {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.metro-print-info td {
+    border: 1px solid #000;
+    padding: 7px 8px;
+}
+
+.metro-print-info .label {
+    width: 18%;
+    font-weight: 600;
+    background: #f3f3f3;
+}
+
+.metro-print-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 18px 0 8px;
+}
+
+.metro-print-equipment {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.metro-print-equipment th,
+.metro-print-equipment td {
+    border: 1px solid #000;
+    padding: 7px 6px;
+    vertical-align: top;
+}
+
+.metro-print-equipment th {
+    background: #f3f3f3;
+    font-weight: 700;
+    text-align: center;
+}
+
+.metro-print-equipment td:first-child,
+.metro-print-equipment th:first-child {
+    width: 35px;
+    text-align: center;
+}
+
+.metro-print-details {
+    margin-top: 15px;
+}
+
+.metro-print-field {
+    margin-bottom: 15px;
+}
+
+.metro-print-label {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.metro-print-value {
+    min-height: 25px;
+    border-bottom: 1px solid #999;
+    padding: 4px 0;
+    white-space: pre-wrap;
+}
+
+.metro-print-signatures {
+    display: flex;
+    justify-content: space-between;
+    gap: 60px;
+    margin-top: 60px;
+}
+
+.metro-print-signature {
+    width: 45%;
+}
+
+.signature-line {
+    border-bottom: 1px solid #000;
+    height: 30px;
+    margin-top: 15px;
+}
+
+.signature-name {
+    margin-top: 5px;
+    text-align: center;
+    font-size: 10px;
+}
+
+.metro-print-footer {
+    margin-top: 35px;
+    font-size: 10px;
+    color: #666;
+}
+
+
+/* =========================================
+   ПЕЧАТЬ
+   ========================================= */
+
+@media print {
+
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+
+    body {
+        background: #fff !important;
+    }
+
+    body * {
+        visibility: hidden !important;
+    }
+
+    #metroPrintForm,
+    #metroPrintForm * {
+        visibility: visible !important;
+    }
+
+    #metroPrintForm {
+        display: block !important;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+
+    .metro-print-document {
+        width: 100%;
+    }
+
+    .metro-print-header,
+    .metro-print-section-title,
+    .metro-print-field,
+    .metro-print-signatures {
+        break-inside: avoid;
+    }
+
+    .metro-print-equipment {
+        break-inside: auto;
+    }
+
+    .metro-print-equipment tr {
+        break-inside: avoid;
+    }
+
+    .metro-print-equipment thead {
+        display: table-header-group;
+    }
+
+    .metro-print-info,
+    .metro-print-equipment {
+        page-break-inside: auto;
+    }
+
+    .metro-print-btn {
+        display: none !important;
+    }
+}
 </style>
+<script>
+function printMetroRequest() {
+    window.print();
+}
+</script>
 {% endblock %}

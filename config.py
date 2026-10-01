@@ -9,6 +9,10 @@ from datetime import datetime
 SERVER_TIMEZONE = 'Asia/Magadan'  # Можно менять на любой другой
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar', '7z'}
+
+AD_SERVER = '10.0.0.2'
+
+AD_DOMAIN = "aso"
 # Список доступных поясов (только для справки, не для изменения)
 TIMEZONES = [
     ('UTC', 'UTC'),

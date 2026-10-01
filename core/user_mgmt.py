@@ -10,9 +10,9 @@ user_mgmt_bp = Blueprint('user_mgmt', __name__)
 @user_mgmt_bp.route('/admin/users')
 @login_required
 def admin_users():
-    if not current_user.is_admin:
+    if not current_user.role == 0:
         abort(403)
-    
+    print(request.args)
     query = User.query
     
     search = request.args.get('search', '').strip()
@@ -35,9 +35,11 @@ def admin_users():
     if office:
         query = query.filter(User.office == office)
     if role == 'admin':
-        query = query.filter(User.is_admin == True)
-    elif role == 'user':
-        query = query.filter(User.is_admin == False)
+        query = query.filter(User.role == 0)
+    elif role == 'client':
+        query = query.filter(User.role == 1)
+    elif role == 'operator':
+        query = query.filter(User.role == 2)
     
     users = query.order_by(User.full_name).all()
     
@@ -54,7 +56,7 @@ def admin_users():
 @user_mgmt_bp.route('/admin/user/create', methods=['GET', 'POST'])
 @login_required
 def admin_user_create():
-    if not current_user.is_admin:
+    if not current_user.role == 0:
         abort(403)
     
     if request.method == 'POST':
@@ -66,7 +68,7 @@ def admin_user_create():
         department = request.form.get('department')
         position = request.form.get('position')
         office = request.form.get('office')
-        is_admin = request.form.get('is_admin') == 'on'
+        role = request.form.get('role') == 'on'
         notify_email = request.form.get('notify_email') == 'on'
         
         if User.query.filter_by(username=username).first():
@@ -99,7 +101,7 @@ def admin_user_create():
 @user_mgmt_bp.route('/admin/user/<int:user_id>/edit', methods=['GET', 'POST'])
 @login_required
 def admin_user_edit(user_id):
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         abort(403)
     
     user = User.query.get_or_404(user_id)
@@ -150,7 +152,7 @@ def admin_user_edit(user_id):
 @user_mgmt_bp.route('/admin/user/<int:user_id>/delete', methods=['POST'])
 @login_required
 def admin_user_delete(user_id):
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         abort(403)
     
     if user_id == current_user.id:

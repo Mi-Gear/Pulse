@@ -10,7 +10,7 @@ queue_mgmt_bp = Blueprint('queue_mgmt', __name__)
 @queue_mgmt_bp.route('/admin/queue/create', methods=['GET', 'POST'])
 @login_required
 def admin_queue_create():
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         abort(403)
     
     if request.method == 'POST':        
@@ -46,7 +46,7 @@ def admin_queue_create():
 @queue_mgmt_bp.route('/admin/queue/<int:queue_id>/edit', methods=['GET', 'POST'])
 @login_required
 def admin_queue_edit(queue_id):
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         abort(403)
     
     queue = Queue.query.get_or_404(queue_id)
@@ -83,7 +83,7 @@ def admin_queue_edit(queue_id):
 @queue_mgmt_bp.route('/admin/queue/<int:queue_id>/delete', methods=['POST'])
 @login_required
 def admin_queue_delete(queue_id):
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         abort(403)
     
     queue = Queue.query.get_or_404(queue_id)
@@ -101,7 +101,7 @@ def admin_queue_delete(queue_id):
 @queue_mgmt_bp.route('/admin/queue/<int:queue_id>/members', methods=['POST'])
 @login_required
 def admin_queue_members(queue_id):
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         abort(403)
     
     queue = Queue.query.get_or_404(queue_id)
@@ -120,7 +120,7 @@ def admin_queue_members(queue_id):
 @queue_mgmt_bp.route('/admin/queue/<int:queue_id>/add-admin', methods=['POST'])
 @login_required
 def admin_queue_add_admin(queue_id):
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         abort(403)
     
     queue = Queue.query.get_or_404(queue_id)
@@ -140,7 +140,7 @@ def admin_queue_add_admin(queue_id):
 @queue_mgmt_bp.route('/admin/queue/<int:queue_id>/remove-admin/<int:user_id>', methods=['POST'])
 @login_required
 def admin_queue_remove_admin(queue_id, user_id):
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         abort(403)
     
     queue = Queue.query.get_or_404(queue_id)

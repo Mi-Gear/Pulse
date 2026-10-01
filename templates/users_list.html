@@ -84,7 +84,7 @@
                                         <span><i class="fas fa-phone me-1"></i>{{ user.phone }}</span>
                                     {% endif %}
                                 </div>
-                                {% if user.is_admin %}
+                                {% if user.role == 0 %}
                                     <span class="badge-status badge-status-new mt-1">Администратор</span>
                                 {% endif %}
                                 {% if user.id == current_user.id %}

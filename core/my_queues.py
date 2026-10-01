@@ -10,11 +10,11 @@ my_q_bp = Blueprint("my_queues",__name__)
 @my_q_bp.route('/my-queues')
 @login_required
 def my_queues():
-    if not current_user.admin_queues and not current_user.is_admin:
+    if not current_user.admin_queues and not current_user.role == 0 :
         flash('У вас нет прав на просмотр этой страницы', 'danger')
         return redirect(url_for('index'))
     
-    if current_user.is_admin:
+    if current_user.role == 0 :
         queues = Queue.query.order_by(Queue.created_at.desc()).all()
     else:
         queues = current_user.admin_queues

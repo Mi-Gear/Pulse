@@ -122,7 +122,7 @@ async def booking_gantt_book():
 async def booking_gantt_cancel(booking_id):
     booking = Booking.query.get_or_404(booking_id)
     
-    if booking.user_id != current_user.id and not current_user.is_admin:
+    if booking.user_id != current_user.id and not current_user.role == 0 :
         return jsonify({'error': 'У вас нет прав на отмену этого бронирования'}), 403
     
     booking.status = 'cancelled'
@@ -293,7 +293,7 @@ async def book_car(car_id):
 async def cancel_booking(booking_id):
     booking = Booking.query.get_or_404(booking_id)
     
-    if booking.user_id != current_user.id and not current_user.is_admin:
+    if booking.user_id != current_user.id and not current_user.role == 0 :
         abort(403)
     
     booking.status = 'cancelled'

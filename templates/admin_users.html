@@ -58,8 +58,10 @@
                 <label class="form-label-modern small">Роль</label>
                 <select class="form-select-modern" name="role">
                     <option value="">Все</option>
-                    <option value="admin" {% if request.args.get('role') == 'admin' %}selected{% endif %}>Администратор</option>
-                    <option value="user" {% if request.args.get('role') == 'user' %}selected{% endif %}>Пользователь</option>
+                    <option value="admin" {% if request.args.get('role') == 0 %}selected{% endif %}>Администратор</option>
+                    <option value="client" {% if request.args.get('role') == 1 %}selected{% endif %}>Пользователь</option>
+                    <option value="operator" {% if request.args.get('role') == 2 %}selected{% endif %}>Оператор</option>
+
                 </select>
             </div>
             <div class="col-md-1">
@@ -109,9 +111,11 @@
                         <td>{{ user.position or '—' }}</td>
                         <td>{{ user.office or '—' }}</td>
                         <td>
-                            {% if user.is_admin %}
-                                <span class="badge-status badge-status-new">Администратор</span>
-                            {% else %}
+                            {% if user.role == 0 %}
+                                <span class="badge-status badge-status-work">Администратор</span>
+                            {% elif user.role == 2 %}
+                                <span class="badge-status badge-status-new">Оператор</span>
+                            {% else  %}
                                 <span class="badge-status badge-status-other">Пользователь</span>
                             {% endif %}
                         </td>

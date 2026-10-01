@@ -116,8 +116,8 @@
                     <div class="profile-info-item">
                         <span class="profile-info-label">Роль</span>
                         <span class="profile-info-value">
-                            <span class="badge-status {% if current_user.is_admin %}badge-status-new{% else %}badge-status-other{% endif %}">
-                                {% if current_user.is_admin %}Администратор{% else %}Пользователь{% endif %}
+                            <span class="badge-status {% if current_user.role == 0 %}badge-status-new{% else %}badge-status-other{% endif %}">
+                                {% if current_user.role == 0 %}Администратор{% else %}Пользователь{% endif %}
                             </span>
                         </span>
                     </div>

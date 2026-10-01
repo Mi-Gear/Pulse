@@ -21,6 +21,10 @@ from datetime import datetime, timedelta
 from core.utils import get_available_queues, allowed_file, can_manage_queue
 from flask_app import app_core as app
 
+from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+
 import sqlite3
 import json
 import os
@@ -29,7 +33,506 @@ import io
 import pandas as pd
 import pytz
 
+from io import BytesIO
+
 tickets_bp = Blueprint('tickets', __name__)
+
+@tickets_bp.route('/tickets/<int:ticket_id>/metrologist/docx')
+@login_required
+def metrologist_docx(ticket_id):
+    from io import BytesIO
+    import os
+
+    from docx import Document
+    from flask import send_file, abort
+
+    ticket = Ticket.query.get_or_404(ticket_id)
+    metro = ticket.metrologist_request
+
+    if not metro:
+        abort(404, description='Заявка метролога не найдена')
+
+    rows = metro.get_data() or []
+
+    template_path = os.path.join(
+        tickets_bp.root_path,
+        '..',
+        'static',
+        'templates',
+        'ticket_template.docx'
+    )
+
+    if not os.path.exists(template_path):
+        abort(500, description='Шаблон ticket_template.docx не найден')
+
+    # ---------------------------------------------------------
+    # Данные для обычных {placeholder}
+    # ---------------------------------------------------------
+
+    data = {
+        'ticket_id': ticket.id,
+        'ticket_number': ticket.ticket_number or '',
+        'request_type': metro.request_type or '',
+        'equipment_count': len(rows),
+    }
+
+    doc = Document(template_path)
+
+    # ---------------------------------------------------------
+    # Замена обычных placeholder
+    # ---------------------------------------------------------
+
+    def replace_placeholder(paragraph, placeholder, value):
+        """
+        Заменяет placeholder даже если Word разбил его
+        на несколько runs.
+        """
+
+        value = '' if value is None else str(value)
+
+        runs = paragraph.runs
+
+        if not runs:
+            return
+
+        full_text = ''.join(run.text or '' for run in runs)
+
+        if placeholder not in full_text:
+            return
+
+        start = full_text.find(placeholder)
+        end = start + len(placeholder)
+
+        # Определяем runs, которые затрагивает placeholder
+        positions = []
+        current = 0
+
+        for index, run in enumerate(runs):
+            text = run.text or ''
+            run_start = current
+            run_end = current + len(text)
+
+            if run_end > start and run_start < end:
+                positions.append(
+                    (index, run_start, run_end)
+                )
+
+            current = run_end
+
+        if not positions:
+            return
+
+        first_index = positions[0][0]
+        last_index = positions[-1][0]
+
+        first_run = runs[first_index]
+
+        first_text = first_run.text or ''
+
+        # Позиция начала placeholder внутри первого run
+        first_run_start = positions[0][1]
+        local_start = start - first_run_start
+
+        # Если placeholder целиком в одном run
+        if first_index == last_index:
+            first_run.text = (
+                first_text[:local_start]
+                + value
+                + first_text[local_start + len(placeholder):]
+            )
+            return
+
+        # Текст после placeholder в последнем run
+        last_run = runs[last_index]
+        last_run_start = positions[-1][1]
+
+        local_end = end - last_run_start
+
+        suffix = (last_run.text or '')[local_end:]
+
+        # Первый run:
+        # оставляем всё до placeholder + значение
+        first_run.text = (
+            first_text[:local_start]
+            + value
+        )
+
+        # Промежуточные runs очищаем
+        for i in range(first_index + 1, last_index):
+            runs[i].text = ''
+
+        # Последний run оставляет только текст после placeholder
+        last_run.text = suffix
+
+    def replace_all_placeholders(paragraph):
+        for key, value in data.items():
+            replace_placeholder(
+                paragraph,
+                '{' + key + '}',
+                value
+            )
+
+    # Обычные абзацы
+    for paragraph in doc.paragraphs:
+        replace_all_placeholders(paragraph)
+
+    # Абзацы внутри существующих таблиц
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    replace_all_placeholders(paragraph)
+
+    # ---------------------------------------------------------
+    # Таблица оборудования
+    # ---------------------------------------------------------
+
+    labels = {
+        'equipment_name': 'Наименование оборудования',
+        'inventory_number': 'Инвентарный номер',
+        'serial_number': 'Заводской номер',
+        'production_year': 'Год выпуска',
+        'quantity': 'Количество единиц',
+        'mz_order': 'Приказ МЗ РФ',
+        'nkmi': 'НКМИ (код вида медицинского изделия)',
+        'fault_description': 'Описание неисправности',
+        'registration_certificate': 'Регистрационное удостоверение',
+        'hazard_class': 'Класс опасности',
+        'service_period': 'Периодичность обслуживания согласно паспорта',
+        'verification_period': 'Периодичность поверки согласно паспорта',
+        'last_verification_date': 'Дата последней поверки',
+        'writeoff_justification': 'Обоснование целесообразности списания',
+        'purchase_justification': 'Обоснование целесообразности приобретения',
+    }
+
+    def find_equipment_table_placeholder():
+        """
+        Ищет абзац с {equipment_table}.
+        """
+
+        for paragraph in doc.paragraphs:
+            if '{equipment_table}' in paragraph.text:
+                return paragraph
+
+        return None
+
+    def add_table_after_paragraph(paragraph, rows):
+        from docx.table import Table
+        from docx.oxml import OxmlElement
+        from docx.oxml.table import CT_Tbl
+        from copy import deepcopy
+
+        if not rows:
+            return
+
+        # -----------------------------------------------------
+        # Определяем колонки
+        # -----------------------------------------------------
+
+        columns = []
+
+        for key, label in labels.items():
+            has_value = any(
+                row.get(key) not in (None, '')
+                for row in rows
+            )
+
+            if has_value:
+                columns.append((key, label))
+
+        if not columns:
+            return
+
+        # -----------------------------------------------------
+        # Создаём временную таблицу
+        # -----------------------------------------------------
+        #
+        # Важно:
+        # создаём её в отдельном временном Document,
+        # чтобы не было цикла XML.
+        # -----------------------------------------------------
+
+        from docx import Document
+
+        temp_doc = Document()
+
+        table = temp_doc.add_table(
+            rows=1,
+            cols=len(columns)
+        )
+
+        # -----------------------------------------------------
+        # Заголовок
+        # -----------------------------------------------------
+
+        header_cells = table.rows[0].cells
+
+        for index, (_, label) in enumerate(columns):
+
+            header_cells[index].text = label
+
+            for paragraph in header_cells[index].paragraphs:
+                for run in paragraph.runs:
+                    run.bold = True
+
+        # -----------------------------------------------------
+        # Данные
+        # -----------------------------------------------------
+
+        for item in rows:
+
+            cells = table.add_row().cells
+
+            for index, (key, _) in enumerate(columns):
+
+                value = item.get(key, '')
+
+                if value is None:
+                    value = ''
+
+                cells[index].text = str(value)
+
+        # -----------------------------------------------------
+        # Добавляем границы
+        # -----------------------------------------------------
+
+        tbl = table._tbl
+        tblPr = tbl.tblPr
+
+        borders = OxmlElement('w:tblBorders')
+
+        for edge in (
+            'top',
+            'left',
+            'bottom',
+            'right',
+            'insideH',
+            'insideV'
+        ):
+            element = OxmlElement(f'w:{edge}')
+
+            element.set(
+                '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val',
+                'single'
+            )
+
+            element.set(
+                '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sz',
+                '4'
+            )
+
+            element.set(
+                '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}space',
+                '0'
+            )
+
+            element.set(
+                '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}color',
+                '000000'
+            )
+
+            borders.append(element)
+
+        tblPr.append(borders)
+
+        # -----------------------------------------------------
+        # Копируем XML таблицы
+        # -----------------------------------------------------
+
+        new_table_xml = deepcopy(table._tbl)
+
+        # -----------------------------------------------------
+        # Вставляем таблицу после {equipment_table}
+        # -----------------------------------------------------
+
+        paragraph._p.addnext(new_table_xml)
+    # ---------------------------------------------------------
+    # Поиск {equipment_table} в документе
+    # ---------------------------------------------------------
+
+    def find_equipment_placeholder():
+        # Обычные абзацы
+        for paragraph in doc.paragraphs:
+            if '{equipment_table}' in paragraph.text:
+                return paragraph
+
+        # Абзацы внутри таблиц
+        for table in doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        if '{equipment_table}' in paragraph.text:
+                            return paragraph
+
+        return None
+
+
+    # ---------------------------------------------------------
+    # Создание таблицы оборудования
+    # ---------------------------------------------------------
+
+    def create_equipment_table(rows):
+        from docx import Document
+        from docx.oxml import OxmlElement
+        from copy import deepcopy
+
+        if not rows:
+            return None
+
+        columns = []
+
+        for key, label in labels.items():
+
+            if any(
+                row.get(key) not in (None, '')
+                for row in rows
+            ):
+                columns.append((key, label))
+
+        if not columns:
+            return None
+
+        # Отдельный документ для создания таблицы
+        temp_doc = Document()
+
+        table = temp_doc.add_table(
+            rows=1,
+            cols=len(columns)
+        )
+
+        # -----------------------------------------------------
+        # Заголовок
+        # -----------------------------------------------------
+
+        for index, (_, label) in enumerate(columns):
+
+            cell = table.rows[0].cells[index]
+
+            cell.text = str(label)
+
+            for paragraph in cell.paragraphs:
+                for run in paragraph.runs:
+                    run.bold = True
+
+        # -----------------------------------------------------
+        # Строки оборудования
+        # -----------------------------------------------------
+
+        for item in rows:
+
+            cells = table.add_row().cells
+
+            for index, (key, _) in enumerate(columns):
+
+                value = item.get(key, '')
+
+                if value is None:
+                    value = ''
+
+                cells[index].text = str(value)
+
+        # -----------------------------------------------------
+        # Границы
+        # -----------------------------------------------------
+
+        tbl = table._tbl
+        tblPr = tbl.tblPr
+
+        borders = OxmlElement('w:tblBorders')
+
+        for edge in (
+            'top',
+            'left',
+            'bottom',
+            'right',
+            'insideH',
+            'insideV'
+        ):
+
+            border = OxmlElement(f'w:{edge}')
+
+            border.set(
+                '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}val',
+                'single'
+            )
+
+            border.set(
+                '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}sz',
+                '4'
+            )
+
+            border.set(
+                '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}space',
+                '0'
+            )
+
+            border.set(
+                '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}color',
+                '000000'
+            )
+
+            borders.append(border)
+
+        tblPr.append(borders)
+
+        # Возвращаем XML-копию
+        return deepcopy(table._tbl)
+
+
+    # ---------------------------------------------------------
+    # Вставка таблицы
+    # ---------------------------------------------------------
+
+    equipment_placeholder = find_equipment_placeholder()
+
+    if equipment_placeholder:
+
+        print('DEBUG: {equipment_table} найден')
+
+        table_xml = create_equipment_table(rows)
+
+        if table_xml is not None:
+
+            # Вставляем таблицу после абзаца
+            equipment_placeholder._p.addnext(table_xml)
+
+            # Удаляем абзац с {equipment_table}
+            parent = equipment_placeholder._p.getparent()
+
+            parent.remove(equipment_placeholder._p)
+
+            print(
+                f'DEBUG: таблица оборудования создана: '
+                f'{len(rows)} строк'
+            )
+
+        else:
+            print('DEBUG: rows пустой или нет колонок')
+
+    else:
+
+        print('DEBUG: {equipment_table} НЕ найден')
+
+    from io import BytesIO
+
+    output = BytesIO()
+
+    doc.save(output)
+
+    output.seek(0)
+
+    filename = f'Заявка_{ticket.ticket_number}.docx'
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name=filename,
+        mimetype=(
+            'application/vnd.openxmlformats-officedocument.'
+            'wordprocessingml.document'
+        )
+    )
+
 
 def generate_ticket_number():
     year = datetime.now().year
@@ -213,7 +716,7 @@ def queue_tickets():
 def ticket_detail(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
 
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         user_queue_ids = [q.id for q in current_user.queues]
 
         if ticket.queue_id not in user_queue_ids and ticket.created_by_id != current_user.id:
@@ -239,12 +742,13 @@ def ticket_detail(ticket_id):
 @login_required
 def search_equipment():
     query = (request.args.get('q') or '').strip()
+    queue_id = (request.args.get('queue_id') or '').strip()
 
     if len(query) < 2:
         return jsonify([])
 
     rows = db.session.execute(
-        db.text("""
+        db.text(f"""           
             SELECT
                 id,
                 equipment_name,
@@ -254,11 +758,12 @@ def search_equipment():
                 production_year,
                 commissioning_year,
                 certificate,
-                registration_certificate
-            FROM equipment
+                registration_certificate,
+                queue_id FROM equipment
             WHERE
-                inventory_number LIKE :query
-                OR serial_number LIKE :query
+                (inventory_number LIKE :query
+                OR serial_number LIKE :query)
+                AND queue_id = {queue_id}
             ORDER BY inventory_number
             LIMIT 10
         """),
@@ -289,7 +794,7 @@ METROLOGIST_TYPES = {
             ('quantity', 'Количество единиц', 'number', True),
             ('mz_order', 'Приказ МЗ РФ', 'text', False),
             ('purchase_justification', 'Обоснование целесообразности приобретения', 'textarea', True),
-            ('nkmi', 'НКМИ (Код вида медицинского изделия)', 'text', False),
+            ('registration_certificate', 'НКМИ (Код вида медицинского изделия)', 'text', False),
         ]
     },
     'repair': {
@@ -301,7 +806,7 @@ METROLOGIST_TYPES = {
             ('serial_number', 'Заводской номер', 'text', False),
             ('fault_description', 'Краткое описание неисправности', 'textarea', True),
             ('production_year', 'Год выпуска', 'number', False),
-            ('nkmi', 'НКМИ (Код вида медицинского изделия)', 'text', False),
+            ('registration_certificate', 'НКМИ (Код вида медицинского изделия)', 'text', False),
             ('registration_certificate', 'Регистрационное удостоверение', 'text', False),
             ('hazard_class', 'Класс опасности', 'text', False),
         ]
@@ -315,7 +820,7 @@ METROLOGIST_TYPES = {
             ('serial_number', 'Заводской номер', 'text', False),
             ('production_year', 'Год выпуска', 'number', False),
             ('service_period', 'Периодичность обслуживания согласно паспорта', 'text', True),
-            ('nkmi', 'НКМИ (Код вида медицинского изделия)', 'text', False),
+            ('registration_certificate', 'НКМИ (Код вида медицинского изделия)', 'text', False),
         ]
     },
     'verification': {
@@ -418,12 +923,14 @@ async def create_ticket():
         queue_id = request.form.get('queue_id')
         start_date = request.form.get('start_date')
         deadline = request.form.get('deadline')
-
+        
         if not queue_id:
             flash('Пожалуйста, выберите очередь для заявки.', 'danger')
+            print(current_user.queues)
             return render_template('create.html', queues=available_queues,
                                    preselected_queue_id=preselected_queue_id,
-                                   metrologist_types=METROLOGIST_TYPES)
+                                   metrologist_types=METROLOGIST_TYPES,
+                                   user_queue=current_user.queues[0].id)
 
         queue = Queue.query.get(queue_id)
         if not queue:
@@ -438,9 +945,11 @@ async def create_ticket():
             metro_rows, error = _metro_rows_from_form(request)
             if error:
                 flash(error, 'danger')
+                print(current_user.queues)
                 return render_template('create.html', queues=available_queues,
-                                       preselected_queue_id=queue.id,
-                                       metrologist_types=METROLOGIST_TYPES)
+                                        preselected_queue_id=preselected_queue_id,
+                                        metrologist_types=METROLOGIST_TYPES,
+                                        user_queue=current_user.queues[0].id)
 
             config = METROLOGIST_TYPES[metro_type]
             # Название заявки формируем из типа и первой позиции оборудования.
@@ -451,15 +960,19 @@ async def create_ticket():
 
         if not title:
             flash('Пожалуйста, укажите название заявки.', 'danger')
+            print(current_user.queues)
             return render_template('create.html', queues=available_queues,
-                                   preselected_queue_id=queue.id,
-                                   metrologist_types=METROLOGIST_TYPES)
-
+                                               preselected_queue_id=preselected_queue_id,
+                                               metrologist_types=METROLOGIST_TYPES,
+                                               user_queue=current_user.queues[0].id)
+            
         if not description.strip():
             flash('Пожалуйста, заполните описание заявки.', 'danger')
+            print(current_user.queues)
             return render_template('create.html', queues=available_queues,
-                                   preselected_queue_id=queue.id,
-                                   metrologist_types=METROLOGIST_TYPES)
+                                               preselected_queue_id=preselected_queue_id,
+                                               metrologist_types=METROLOGIST_TYPES,
+                                               user_queue=current_user.queues[0].id)
 
         ticket = Ticket(
             ticket_number=generate_ticket_number(),
@@ -522,10 +1035,10 @@ async def create_ticket():
 
         return redirect(url_for('tickets.my_tickets'))
 
-    return render_template('create.html',
-                           queues=available_queues,
-                           preselected_queue_id=preselected_queue_id,
-                           metrologist_types=METROLOGIST_TYPES)
+    return render_template('create.html', queues=available_queues,
+                                   preselected_queue_id=preselected_queue_id,
+                                   metrologist_types=METROLOGIST_TYPES,
+                                   user_queue=current_user.queues[0].id)
 
 # === Редактирование заявки ===
 @tickets_bp.route('/ticket/<int:ticket_id>/edit', methods=['GET', 'POST'])
@@ -573,7 +1086,7 @@ async def edit_ticket(ticket_id):
 @login_required
 async def upload_attachment(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         user_queue_ids = [q.id for q in current_user.queues]
         if ticket.queue_id not in user_queue_ids:
             abort(403)
@@ -664,7 +1177,7 @@ async def delete_attachment(attachment_id):
     attachment = Attachment.query.get_or_404(attachment_id)
     ticket = attachment.ticket
     
-    if not current_user.is_admin and attachment.author_id != current_user.id:
+    if not current_user.role == 0  and attachment.author_id != current_user.id:
         abort(403)
     
     filename = attachment.filename
@@ -753,7 +1266,7 @@ async def transfer_ticket(ticket_id):
 @login_required
 async def add_comment(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         user_queue_ids = [q.id for q in current_user.queues]
         if ticket.queue_id not in user_queue_ids and ticket.created_by_id != current_user.id:
             abort(403)
@@ -803,7 +1316,7 @@ async def add_comment(ticket_id):
 @login_required
 async def change_status(ticket_id):
     ticket = Ticket.query.get_or_404(ticket_id)
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         user_queue_ids = [q.id for q in current_user.queues]
         if ticket.queue_id not in user_queue_ids:
             abort(403)
@@ -831,7 +1344,7 @@ async def change_status(ticket_id):
 @tickets_bp.route('/ticket/<int:ticket_id>/queue', methods=['POST'])
 @login_required
 async def assign_queue(ticket_id):
-    if not current_user.is_admin:
+    if not current_user.role == 0 :
         abort(403)
     
     ticket = Ticket.query.get_or_404(ticket_id)

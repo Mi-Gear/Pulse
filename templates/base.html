@@ -202,7 +202,7 @@
                     {% endif %}
                     
                     <!-- ===== УПРАВЛЕНИЕ (ТОЛЬКО ГЛОБАЛЬНЫЙ АДМИН) ===== -->
-                    {% if current_user.is_authenticated and current_user.is_admin %}
+                    {% if current_user.is_authenticated and current_user.role == 0 %}
                         <li class="nav-item dropdown">
                             <a class="nav-link {{ 'active' if request.endpoint == 'admin_users' }}" href="{{ url_for('user_mgmt.admin_users') }}">
                                 <i class="fas fa-user-cog"></i> Управление пользователями

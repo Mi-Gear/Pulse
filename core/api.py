@@ -3,8 +3,64 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_
 from models import db, User, Ticket, Queue, Car, Booking
+import requests
+
 
 api_bp = Blueprint("api",__name__)
+
+@api_bp.route("/api/medical-product")
+def medical_product():
+    reg_number = request.args.get("reg_number", "").strip()
+
+    if not reg_number:
+        return jsonify({
+            "success": False,
+            "error": "Не указан регистрационный номер"
+        }), 400
+
+    api_url = (
+        "https://elk.roszdravnadzor.gov.ru"
+        "/public-gateway/registered-med-product/api/v1/"
+        "med-product/filter-public"
+    )
+
+    try:
+        response = requests.post(
+            api_url,
+            params={
+                "page": 0,
+                "size": 10
+            },
+            json={
+                "legalSystem": "RUSSIA",
+                "textSearch": reg_number
+            },
+            verify=False,
+            timeout=15
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+        content = data.get("content", [])
+
+        if not content:
+            return jsonify({
+                "success": False,
+                "error": "Медицинское изделие не найдено"
+            }), 404
+
+        product_id = content[0]["id"]
+
+        return redirect(
+            f"https://elk.roszdravnadzor.gov.ru/widget/med-product/{product_id}"
+        )
+
+    except requests.RequestException as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 502
 
 @api_bp.route('/api/tickets')
 def api_tickets():

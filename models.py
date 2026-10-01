@@ -21,7 +21,7 @@ class User(UserMixin, db.Model):
     position = db.Column(db.String(200), nullable=True)
     office = db.Column(db.String(50), nullable=True)
     
-    is_admin = db.Column(db.Boolean, default=False)
+    role = db.Column(db.Integer, default=1)
     created_at = db.Column(db.DateTime, default=datetime.now(tz))
     notify_email = db.Column(db.Boolean, default=True)
     
@@ -54,6 +54,9 @@ class User(UserMixin, db.Model):
             if len(parts) >= 2:
                 return f"{parts[0]} {parts[1][0]}." if len(parts) >= 2 else self.full_name
         return self.username
+    @property
+    def department(self):
+        return ', '.join(q.name for q in self.queues)
 
     def __repr__(self):
         return f'<User {self.username}>'

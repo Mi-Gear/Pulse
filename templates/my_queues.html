@@ -5,21 +5,21 @@
     <div>
         <h4 class="mb-0 fw-semibold">
             <i class="fas fa-layer-group me-2" style="color: var(--primary);"></i>
-            {% if current_user.is_admin %}
+            {% if current_user.role == 0 %}
                 Все очереди
             {% else %}
                 Мои очереди
             {% endif %}
         </h4>
         <span class="text-muted small">
-            {% if current_user.is_admin %}
+            {% if current_user.role == 0 %}
                 {{ queues|length }} очередей всего
             {% else %}
                 {{ queues|length }} очередей, где вы администратор
             {% endif %}
         </span>
     </div>
-    {% if current_user.is_admin %}
+    {% if current_user.role == 0 %}
         <a href="{{ url_for('queue_mgmt.admin_queue_create') }}" class="btn btn-primary-gradient">
             <i class="fas fa-plus me-1"></i> Новая очередь
         </a>
@@ -143,7 +143,7 @@
                                 <i class="fas fa-eye me-1"></i> Перейти
                             </a>
                             
-                            {% if current_user.is_admin %}
+                            {% if current_user.role == 0 %}
                                 <a href="{{ url_for('queue_mgmt.admin_queue_edit', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
                                     <i class="fas fa-edit"></i> Редактировать
                                 </a>
@@ -153,7 +153,7 @@
                                 <i class="fas fa-users"></i> Участники
                             </button>
                             
-                            {% if current_user.is_admin %}
+                            {% if current_user.role == 0 %}
                                 <form method="POST" action="{{ url_for('queue_mgmt.admin_queue_delete', queue_id=queue.id) }}" 
                                       onsubmit="return confirm('Удалить очередь «{{ queue.name }}»?')" class="d-inline">
                                     <button type="submit" class="btn btn-outline-modern btn-sm text-danger" 
@@ -176,7 +176,7 @@
                                                        {% if user in queue.members %}checked{% endif %}>
                                                 <label class="form-check-label small">
                                                     {{ user.full_name or user.username }}
-                                                    {% if user.is_admin %}(Админ){% endif %}
+                                                    {% if user.role == 0 %}(Админ){% endif %}
                                                     {% if user in queue.admins %}⭐{% endif %}
                                                 </label>
                                             </div>
@@ -199,13 +199,13 @@
         <div class="card-body text-center py-5">
             <i class="fas fa-layer-group mb-3" style="font-size: 2rem; color: #cbd5e0;"></i>
             <p class="text-muted">
-                {% if current_user.is_admin %}
+                {% if current_user.role == 0 %}
                     Очередей пока нет
                 {% else %}
                     Вы не являетесь администратором ни одной очереди
                 {% endif %}
             </p>
-            {% if current_user.is_admin %}
+            {% if current_user.role == 0 %}
                 <a href="{{ url_for('admin_queue_create') }}" class="btn btn-primary-gradient">
                     <i class="fas fa-plus me-1"></i> Создать первую очередь
                 </a>

@@ -48,7 +48,7 @@
                                 <option value="{{ user.id }}" 
                                         {% if queue and user in queue.admins %}selected{% endif %}>
                                     {{ user.full_name or user.username }}
-                                    {% if user.is_admin %}(Глобальный админ){% endif %}
+                                    {% if user.role == 0 %}(Глобальный админ){% endif %}
                                 </option>
                             {% endfor %}
                         </select>
@@ -87,7 +87,7 @@
                             <div class="fw-medium">{{ admin.full_name or admin.username }}</div>
                             <small class="text-muted">{{ admin.email }}</small>
                         </div>
-                        {% if admin.is_admin %}
+                        {% if admin.role == 0 %}
                             <span class="badge-status badge-status-new ms-auto">Глобальный</span>
                         {% endif %}
                     </div>

@@ -1320,17 +1320,17 @@ function equipmentSearch(event) {
                 );
 
 
-                const response =
-                    await fetch(
-                        `/api/equipment/search?q=${encodeURIComponent(query)}`,
-                        {
-                            method: 'GET',
-
-                            headers: {
-                                'Accept': 'application/json'
-                            }
+                const userQueueId = {{ user_queue|tojson }};
+                
+                const response = await fetch(
+                    `/api/equipment/search?q=${encodeURIComponent(query)}&queue_id=${encodeURIComponent(userQueueId)}`,
+                    {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
                         }
-                    );
+                    }
+                );
 
 
                 console.log(
@@ -1577,8 +1577,8 @@ function fillEquipment(
         registration_certificate:
             equipment.registration_certificate || '',
 
-        source_sheet:
-            equipment.source_sheet || ''
+        queue_id:
+            equipment.queue_id || ''
 
     };
 
