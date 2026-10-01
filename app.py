@@ -8,6 +8,7 @@ from sqlalchemy import or_
 import traceback, json
 import requests
 
+from updater import update_checker
 
 
 from core.utils import can_manage_queue
@@ -216,8 +217,18 @@ def profile():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-        app.register_blueprints([login_bp,my_q_bp,user_mgmt_bp,stat_bp,queue_mgmt_bp,q_detail_bp,tickets_bp,api_bp])
-        
+
+        app.register_blueprints([
+            login_bp,
+            my_q_bp,
+            user_mgmt_bp,
+            stat_bp,
+            queue_mgmt_bp,
+            q_detail_bp,
+            tickets_bp,
+            api_bp
+        ])
+
         if User.query.count() == 0:
             admin = User(
                 username='admin',
@@ -227,15 +238,29 @@ if __name__ == '__main__':
                 is_admin=True,
                 notify_email=True
             )
+
             db.session.add(admin)
             db.session.commit()
-            
+
             admin_user = User.query.get(1)
+
             for queue in Queue.query.all():
                 if admin_user:
                     queue.admins.append(admin_user)
+
             db.session.commit()
+
             print('✅ Созданы тестовые очереди')
-    
-    app.run(debug=True, host='0.0.0.0', port=80)
+
+        # Запускаем автоматическое обновление
+        if update_checker:
+            update_checker.start()
+            print('🔄 Автообновление запущено')
+
+    app.run(
+        debug=True,
+        host='0.0.0.0',
+        port=80,
+        use_reloader=False
+    )
     
