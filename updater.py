@@ -140,6 +140,7 @@ CLEAN_KEEP_PATTERNS = [
     "__pycache__/",
     ".venv/",
     "venv/",
+    "instance/",
 ]
 
 
