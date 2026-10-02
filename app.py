@@ -41,7 +41,7 @@ from modules import *
 
 
 app.config['SECRET_KEY'] = 'super-secret-key-change-this'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///servicedesk.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@188.113.183.125:6033/pulse'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 app.config['UPLOAD_FOLDER'] = 'uploads'
