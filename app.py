@@ -154,7 +154,7 @@ def users_list():
             )
         )
     if department:
-        query = query.filter(User.department == department)
+        query = query.filter(User.queues.any(Queue.name == department))
     if position:
         query = query.filter(User.position == position)
     if office:
@@ -162,7 +162,7 @@ def users_list():
     
     users = query.order_by(User.full_name).all()
     
-    departments = sorted(set(u.department for u in User.query.all() if u.department))
+    departments = sorted({q.name for q in Queue.query.all()})
     positions = sorted(set(u.position for u in User.query.all() if u.position))
     offices = sorted(set(u.office for u in User.query.all() if u.office))
     
