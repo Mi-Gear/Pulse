@@ -38,6 +38,25 @@
                         </select>
                     </div>
 
+                    <!-- ===== ДОСТУПНЫЕ ОЧЕРЕДИ ДЛЯ ОТПРАВКИ ЗАЯВОК ===== -->
+                    <div class="mb-3">
+                        <label class="form-label-modern">
+                            <i class="fas fa-share-alt me-1" style="color: var(--primary);"></i>
+                            Куда можно отправлять заявки из этой очереди
+                        </label>
+                        <select class="form-select-modern" name="allowed_queue_ids" multiple style="min-height: 140px;">
+                            {% for target_queue in queues %}
+                                {% if not queue or target_queue.id != queue.id %}
+                                    <option value="{{ target_queue.id }}"
+                                        {% if queue and target_queue in queue.allowed_destinations %}selected{% endif %}>
+                                        {{ target_queue.name }}
+                                    </option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Выберите очереди, в которые участники этой очереди смогут направлять заявки. Удерживайте Ctrl для выбора нескольких. Если ничего не выбрано, отправка в другие очереди не разрешена.</small>
+                    </div>
+
                     <!-- ===== АДМИНИСТРАТОРЫ ===== -->
                     <div class="mb-3">
                         <label class="form-label-modern">
