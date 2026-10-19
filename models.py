@@ -35,13 +35,6 @@ class User(UserMixin, db.Model):
     
     # Заявки созданные пользователем
     created_tickets = db.relationship('Ticket', foreign_keys='Ticket.created_by_id', backref='creator')
-    allowed_queues = db.relationship(
-        'Queue',
-        secondary='queue_links',
-        primaryjoin='Queue.id == queue_links.c.queue_from',
-        secondaryjoin='Queue.id == queue_links.c.queue_to',
-        backref='allowed_by_queues'
-    )
     # Бронирования пользователя
     bookings = db.relationship('Booking', backref='user', lazy=True)
     
@@ -78,6 +71,15 @@ class Queue(db.Model):
     
     # Участники очереди (многие-ко-многим)
     members = db.relationship('User', secondary='user_queue', back_populates='queues')
+
+    # Очереди, в которые разрешено направлять заявки из этой очереди
+    allowed_destinations = db.relationship(
+        'Queue',
+        secondary='queue_links',
+        primaryjoin='Queue.id == queue_links.c.queue_from',
+        secondaryjoin='Queue.id == queue_links.c.queue_to',
+        backref='allowed_from_queues'
+    )
     
     # Заявки в очереди
     tickets = db.relationship('Ticket', backref='queue', lazy=True)
