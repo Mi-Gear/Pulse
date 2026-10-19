@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from sqlalchemy import or_
-from models import db, User, Ticket
+from models import db, User, Ticket, Queue
 from config import TIMEZONES
 
 user_mgmt_bp = Blueprint('user_mgmt', __name__)
@@ -29,7 +29,7 @@ def admin_users():
             )
         )
     if department:
-        query = query.filter(User.department == department)
+        query = query.filter(User.queues.any(Queue.name == department))
     if position:
         query = query.filter(User.position == position)
     if office:
@@ -43,7 +43,7 @@ def admin_users():
     
     users = query.order_by(User.full_name).all()
     
-    departments = sorted(set(u.department for u in User.query.all() if u.department))
+    departments = sorted({q.name for q in Queue.query.all()})
     positions = sorted(set(u.position for u in User.query.all() if u.position))
     offices = sorted(set(u.office for u in User.query.all() if u.office))
     
