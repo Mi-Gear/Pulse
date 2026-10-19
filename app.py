@@ -244,7 +244,7 @@ if __name__ == '__main__':
                 email='admin@servicedesk.local',
                 password=generate_password_hash('Qq123456'),
                 full_name='Администратор',
-                is_admin=True,
+                role=0,
                 notify_email=True
             )
 
