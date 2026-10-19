@@ -887,21 +887,17 @@ async def create_ticket():
     print(user_queue_ids)
     
     if user_queue_ids:
-        # Находим очереди, которые разрешены через queue_links
-        # Используем прямой запрос к таблице queue_links
+        # Доступные направления определяются настройками queue_links:
+        # queue_from — очередь, в которой состоит пользователь,
+        # queue_to — очередь-получатель заявки.
         available_queues = Queue.query.filter(
-            db.or_(
-                # Очереди, в которых пользователь состоит напрямую
-                # Очереди, которые доступны через queue_links (queue_to)
-                # где queue_from - очередь пользователя
-                Queue.id.in_(
-                    db.select(queue_links.c.queue_to).where(
-                        queue_links.c.queue_from.in_(user_queue_ids)
-                    )
+            Queue.id.in_(
+                db.select(queue_links.c.queue_to).where(
+                    queue_links.c.queue_from.in_(user_queue_ids)
                 )
             ),
             Queue.is_active == True
-        ).distinct().all()
+        ).order_by(Queue.name).distinct().all()
     else:
         available_queues = []
     
@@ -933,8 +929,8 @@ async def create_ticket():
                                    user_queue=current_user.queues[0].id)
 
         queue = Queue.query.get(queue_id)
-        if not queue:
-            flash('Выбранная очередь не найдена.', 'danger')
+        if not queue or queue not in available_queues:
+            flash('Выбранная очередь недоступна для отправки заявок из ваших очередей.', 'danger')
             return redirect(url_for('tickets.create_ticket'))
 
         metro_rows = None
