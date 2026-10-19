@@ -111,18 +111,27 @@ def from_json(value):
 @app.route('/')
 @login_required
 def index():
-    queue_ids = [q.id for q in current_user.queues]
-    if 10 in queue_ids:
-        queue_tickets_count = Ticket.query.filter(Ticket.queue_id.in_(queue_ids)).count()
-        new_tickets_count = Ticket.query.filter(Ticket.queue_id.in_(queue_ids)).filter_by(status="Новая").count()
-        work_tickets_count = Ticket.query.filter(Ticket.queue_id.in_(queue_ids)).filter_by(status="В работе").count()
-        closed_tickets_count = Ticket.query.filter(Ticket.queue_id.in_(queue_ids)).filter_by(status="Закрыта").count()
+    # Роль 2 видит заявки очередей, в которых состоит пользователь.
+    # Остальные роли видят только созданные ими заявки.
+    if current_user.role == 2:
+        queue_ids = [q.id for q in current_user.queues]
+        base_query = Ticket.query.filter(Ticket.queue_id.in_(queue_ids)) if queue_ids else Ticket.query.filter(False)
     else:
-        queue_tickets_count = Ticket.query.filter_by(created_by_id=current_user.id).count()
-        new_tickets_count = Ticket.query.filter_by(created_by_id=current_user.id).filter_by(status="Новая").count()
-        work_tickets_count = Ticket.query.filter_by(created_by_id=current_user.id).filter_by(status="В работе").count()
-        closed_tickets_count = Ticket.query.filter_by(created_by_id=current_user.id).filter_by(status="Закрыта").count()
-    return render_template('index.html', queue_tickets_count=queue_tickets_count, new_tickets_count=new_tickets_count, work_tickets_count=work_tickets_count,closed_tickets_count=closed_tickets_count, Ticket=Ticket)
+        base_query = Ticket.query.filter_by(created_by_id=current_user.id)
+
+    queue_tickets_count = base_query.count()
+    new_tickets_count = base_query.filter_by(status="Новая").count()
+    work_tickets_count = base_query.filter_by(status="В работе").count()
+    closed_tickets_count = base_query.filter_by(status="Закрыта").count()
+
+    return render_template(
+        'index.html',
+        queue_tickets_count=queue_tickets_count,
+        new_tickets_count=new_tickets_count,
+        work_tickets_count=work_tickets_count,
+        closed_tickets_count=closed_tickets_count,
+        Ticket=Ticket
+    )
 
 
 
