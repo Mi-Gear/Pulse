@@ -54,7 +54,7 @@
                             <label class="form-label-modern">
                                 <i class="fas fa-building me-1"></i>Отдел
                             </label>
-                            <input type="text" class="form-control-modern" name="department" value="{{ user.department if user else '' }}" placeholder="Отделение">
+                            <input type="text" class="form-control-modern" name="department" value="{{ user.department if user else '' }}" placeholder="Определяется очередями пользователя" readonly title="Отделение определяется членством в очередях">
                         </div>
                         <div class="col-md-4">
                             <label class="form-label-modern">
