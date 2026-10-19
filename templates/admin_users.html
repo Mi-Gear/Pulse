@@ -58,9 +58,9 @@
                 <label class="form-label-modern small">Роль</label>
                 <select class="form-select-modern" name="role">
                     <option value="">Все</option>
-                    <option value="admin" {% if request.args.get('role') == 0 %}selected{% endif %}>Администратор</option>
-                    <option value="client" {% if request.args.get('role') == 1 %}selected{% endif %}>Пользователь</option>
-                    <option value="operator" {% if request.args.get('role') == 2 %}selected{% endif %}>Оператор</option>
+                    <option value="admin" {% if request.args.get('role') == 'admin' %}selected{% endif %}>Администратор</option>
+                    <option value="client" {% if request.args.get('role') == 'client' %}selected{% endif %}>Пользователь</option>
+                    <option value="operator" {% if request.args.get('role') == 'operator' %}selected{% endif %}>Оператор</option>
 
                 </select>
             </div>
