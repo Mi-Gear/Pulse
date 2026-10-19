@@ -56,9 +56,6 @@ GITHUB_BRANCH = os.environ.get(
     "main",
 )
 
-GITHUB_TOKEN = os.environ.get(
-    "GITHUB_TOKEN",
-)
 
 CHECK_INTERVAL = int(
     os.environ.get(
