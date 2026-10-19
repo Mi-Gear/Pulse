@@ -69,14 +69,13 @@
                             <input type="text" class="form-control-modern" name="office" value="{{ user.office if user else '' }}" placeholder="№ кабинета">
                         </div>
 
-                        <div class="col-12">
-                            <div class="form-check">
-                                <input type="checkbox" class="form-check-input" id="role == 0" name="role == 0"
-                                       {% if user and user.role == 0 %}checked{% endif %}>
-                                <label class="form-check-label" for="role == 0">
-                                    <i class="fas fa-crown me-1" style="color: #f59e0b;"></i> Администратор
-                                </label>
-                            </div>
+                        <div class="col-md-6">
+                            <label class="form-label-modern" for="role">Роль</label>
+                            <select class="form-select-modern" id="role" name="role" required>
+                                <option value="0" {% if user and user.role == 0 %}selected{% endif %}>Администратор</option>
+                                <option value="1" {% if not user or user.role == 1 %}selected{% endif %}>Пользователь</option>
+                                <option value="2" {% if user and user.role == 2 %}selected{% endif %}>Оператор</option>
+                            </select>
                         </div>
 
                         <div class="col-12">
