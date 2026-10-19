@@ -65,7 +65,6 @@ def admin_user_create():
         password = request.form.get('password')
         full_name = request.form.get('full_name')
         phone = request.form.get('phone')
-        department = request.form.get('department')
         position = request.form.get('position')
         office = request.form.get('office')
         try:
@@ -90,7 +89,6 @@ def admin_user_create():
             password=generate_password_hash(password),
             full_name=full_name,
             phone=phone,
-            department=department,
             position=position,
             office=office,
             role=role,
@@ -116,7 +114,6 @@ def admin_user_edit(user_id):
         email = request.form.get('email')
         full_name = request.form.get('full_name')
         phone = request.form.get('phone')
-        department = request.form.get('department')
         position = request.form.get('position')
         office = request.form.get('office')
         timezone = request.form.get('timezone', 'Europe/Moscow')
@@ -142,7 +139,6 @@ def admin_user_edit(user_id):
         user.email = email
         user.full_name = full_name
         user.phone = phone
-        user.department = department
         user.position = position
         user.office = office
         user.timezone = timezone
