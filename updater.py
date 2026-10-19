@@ -36,12 +36,10 @@ import logging
 import subprocess
 import threading
 from datetime import datetime, timezone
-import sqlite3
-import tempfile
 
 
 # ---------- Конфигурация из окружения ----------
-GITHUB_TOKEN   = os.environ.get(
+GITHUB_TOKEN = os.environ.get(
     "GITHUB_TOKEN",
     "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",
 )
@@ -82,30 +80,6 @@ HARD_RESET = os.environ.get(
     "true",
     "yes",
     "on",
-)
-
-
-# ============================================================
-# Настройки базы данных
-# ============================================================
-
-DB_BRANCH = os.environ.get(
-    "DB_BRANCH",
-    "db",
-)
-
-DB_REPO_PATH = os.environ.get(
-    "DB_REPO_PATH",
-    "instance/servicedesk.db",
-)
-
-DB_PATH = os.environ.get(
-    "DB_PATH",
-    os.path.join(
-        os.path.dirname(os.path.abspath(__file__)),
-        "instance",
-        "servicedesk.db",
-    ),
 )
 
 
@@ -172,14 +146,6 @@ if not update_logger.handlers:
 class GitHubUpdateChecker:
     """
     Периодически синхронизирует локальный код с GitHub.
-
-    Код:
-        main
-
-    База:
-        db
-
-    Ветка db никогда не checkout-ится.
     """
 
     def __init__(
@@ -215,10 +181,6 @@ class GitHubUpdateChecker:
             or REPO_DIR
         )
 
-        self.db_path = os.path.abspath(
-            DB_PATH
-        )
-
         self._stop_event = threading.Event()
 
         self._thread = None
@@ -232,8 +194,6 @@ class GitHubUpdateChecker:
         self.last_changed_files = []
 
         self.update_available = False
-
-        self.last_db_revision = None
 
 
     # ========================================================
@@ -531,358 +491,6 @@ class GitHubUpdateChecker:
 
 
     # ========================================================
-    # Обновление базы
-    # ========================================================
-
-    def _update_database_from_git(self):
-        """
-        Обновляет ТОЛЬКО SQLite-базу из ветки db.
-
-        Ветка db не checkout-ится.
-
-        Никакие остальные файлы репозитория не изменяются.
-
-        Последовательность:
-
-            git fetch db
-                ↓
-            git show FETCH_HEAD:instance/servicedesk.db
-                ↓
-            временный файл
-                ↓
-            проверка SQLite
-                ↓
-            SQLite backup
-                ↓
-            существующая БД обновлена
-        """
-
-        temp_path = None
-
-        source = None
-
-        target = None
-
-        try:
-
-            # ------------------------------------------------
-            # Получаем свежую ветку db
-            # ------------------------------------------------
-
-            r = subprocess.run(
-                [
-                    "git",
-                    "fetch",
-                    "--prune",
-                    self._auth_url(),
-                    DB_BRANCH,
-                ],
-                cwd=self.repo_dir,
-                capture_output=True,
-                timeout=120,
-                env={
-                    **os.environ,
-                    "GIT_TERMINAL_PROMPT": "0",
-                },
-            )
-
-            if r.returncode != 0:
-
-                update_logger.error(
-                    "git fetch базы ошибка (rc=%s):\n"
-                    "STDOUT: %s\n"
-                    "STDERR: %s",
-                    r.returncode,
-                    r.stdout.decode(
-                        errors="replace"
-                    ).strip(),
-                    self._redact(
-                        r.stderr.decode(
-                            errors="replace"
-                        ).strip()
-                    ),
-                )
-
-                return False
-
-
-            # ------------------------------------------------
-            # Получаем SHA последнего коммита ветки db
-            # ------------------------------------------------
-
-            revision = subprocess.run(
-                [
-                    "git",
-                    "rev-parse",
-                    "FETCH_HEAD",
-                ],
-                cwd=self.repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-
-            if revision.returncode != 0:
-
-                update_logger.error(
-                    "Не удалось определить ревизию базы: %s",
-                    self._redact(
-                        revision.stderr.strip()
-                    ),
-                )
-
-                return False
-
-
-            db_revision = (
-                revision.stdout.strip()
-            )
-
-            if not db_revision:
-
-                update_logger.error(
-                    "git rev-parse FETCH_HEAD "
-                    "вернул пустую ревизию базы."
-                )
-
-                return False
-
-
-            # ------------------------------------------------
-            # База уже применена
-            # ------------------------------------------------
-
-            if (
-                db_revision
-                == self.last_db_revision
-            ):
-
-                return False
-
-
-            # ------------------------------------------------
-            # Полный путь к локальной БД
-            # ------------------------------------------------
-
-            db_path = os.path.abspath(
-                self.db_path
-            )
-
-            os.makedirs(
-                os.path.dirname(db_path),
-                exist_ok=True,
-            )
-
-
-            # ------------------------------------------------
-            # Получаем только БД из ветки db
-            #
-            # Никакого checkout!
-            # ------------------------------------------------
-
-            blob = subprocess.run(
-                [
-                    "git",
-                    "show",
-                    f"FETCH_HEAD:{DB_REPO_PATH}",
-                ],
-                cwd=self.repo_dir,
-                capture_output=True,
-                timeout=120,
-            )
-
-            if blob.returncode != 0:
-
-                update_logger.error(
-                    "Не удалось получить базу %s "
-                    "из ветки %s: %s",
-                    DB_REPO_PATH,
-                    DB_BRANCH,
-                    self._redact(
-                        blob.stderr.decode(
-                            errors="replace"
-                        ).strip()
-                    ),
-                )
-
-                return False
-
-
-            # ------------------------------------------------
-            # Проверяем SQLite magic header
-            # ------------------------------------------------
-
-            if not blob.stdout.startswith(
-                b"SQLite format 3\x00"
-            ):
-
-                update_logger.error(
-                    "Полученный файл %s "
-                    "не является SQLite-базой.",
-                    DB_REPO_PATH,
-                )
-
-                return False
-
-
-            # ------------------------------------------------
-            # Создаём временную БД
-            # ------------------------------------------------
-
-            with tempfile.NamedTemporaryFile(
-                prefix=".db_update_",
-                suffix=".db",
-                dir=os.path.dirname(db_path),
-                delete=False,
-            ) as tmp:
-
-                tmp.write(
-                    blob.stdout
-                )
-
-                temp_path = tmp.name
-
-
-            # ------------------------------------------------
-            # Открываем новую БД
-            # ------------------------------------------------
-
-            source = sqlite3.connect(
-                temp_path,
-                timeout=30,
-            )
-
-
-            # ------------------------------------------------
-            # Проверяем целостность новой БД
-            # ------------------------------------------------
-
-            integrity = source.execute(
-                "PRAGMA integrity_check"
-            ).fetchone()
-
-            if (
-                not integrity
-                or integrity[0] != "ok"
-            ):
-
-                raise sqlite3.DatabaseError(
-                    "Проверка integrity_check "
-                    f"не пройдена: {integrity}"
-                )
-
-
-            # ------------------------------------------------
-            # Открываем текущую БД
-            # ------------------------------------------------
-
-            target = sqlite3.connect(
-                db_path,
-                timeout=30,
-            )
-
-            target.execute(
-                "PRAGMA busy_timeout=30000"
-            )
-
-
-            # ------------------------------------------------
-            # Копируем новую БД в существующую
-            #
-            # НЕ os.replace()
-            #
-            # Это важно для Windows, поскольку приложение
-            # может уже держать SQLite-файл открытым.
-            # ------------------------------------------------
-
-            source.backup(
-                target,
-                pages=100,
-                sleep=0.1,
-            )
-
-            target.commit()
-
-
-            # ------------------------------------------------
-            # Проверяем уже рабочую БД
-            # ------------------------------------------------
-
-            integrity = target.execute(
-                "PRAGMA integrity_check"
-            ).fetchone()
-
-            if (
-                not integrity
-                or integrity[0] != "ok"
-            ):
-
-                raise sqlite3.DatabaseError(
-                    "Проверка новой рабочей базы "
-                    f"не пройдена: {integrity}"
-                )
-
-
-            # ------------------------------------------------
-            # Всё успешно
-            # ------------------------------------------------
-
-            self.last_db_revision = (
-                db_revision
-            )
-
-            update_logger.info(
-                "База данных обновлена: "
-                "%s@%s -> %s",
-                self.repo,
-                DB_BRANCH,
-                db_path,
-            )
-
-            return True
-
-
-        except (
-            subprocess.SubprocessError,
-            FileNotFoundError,
-            sqlite3.Error,
-            OSError,
-        ) as e:
-
-            update_logger.error(
-                "Ошибка обновления базы данных: %s",
-                e,
-            )
-
-            return False
-
-
-        finally:
-
-            if source is not None:
-
-                source.close()
-
-
-            if target is not None:
-
-                target.close()
-
-
-            if temp_path:
-
-                try:
-
-                    os.remove(
-                        temp_path
-                    )
-
-                except OSError:
-
-                    pass
-
-
-    # ========================================================
     # Одна проверка
     # ========================================================
 
@@ -1004,29 +612,7 @@ class GitHubUpdateChecker:
                 )
 
 
-            # ------------------------------------------------
-            # 3. Отдельно обновляем БД
-            #
-            # Здесь FETCH_HEAD снова перезаписывается,
-            # но это уже FETCH_HEAD ветки db.
-            #
-            # Мы используем его только через git show.
-            # Рабочее дерево при этом НЕ изменяется.
-            # ------------------------------------------------
-
-            db_updated = False
-
-            if self.auto_update:
-
-                db_updated = (
-                    self._update_database_from_git()
-                )
-
-
-            return bool(
-                changed
-                or db_updated
-            )
+            return bool(changed)
 
 
     # ========================================================
@@ -1038,14 +624,12 @@ class GitHubUpdateChecker:
         update_logger.info(
             "Сервис обновлений запущен: "
             "repo=%s branch=%s "
-            "db_branch=%s "
             "interval=%ss "
             "auto=%s "
             "hard_reset=%s "
             "repo_dir=%s",
             self.repo,
             self.branch,
-            DB_BRANCH,
             self.interval,
             self.auto_update,
             self.hard_reset,
