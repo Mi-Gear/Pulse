@@ -189,6 +189,7 @@ def profile():
         full_name = request.form.get('full_name')
         email = request.form.get('email')
         phone = request.form.get('phone')
+        department = request.form.get('department')
         position = request.form.get('position')
         office = request.form.get('office')
         timezone = request.form.get('timezone')
@@ -203,6 +204,7 @@ def profile():
         current_user.full_name = full_name
         current_user.email = email
         current_user.phone = phone
+        current_user.department = department
         current_user.position = position
         current_user.office = office
         current_user.notify_email = notify_email
