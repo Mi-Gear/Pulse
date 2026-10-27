@@ -7,6 +7,10 @@ from datetime import datetime, timedelta
 from sqlalchemy import or_
 import traceback, json
 import requests
+import time
+
+from sqlalchemy import text
+from sqlalchemy.exc import OperationalError, InterfaceError
 
 from updater import update_checker
 
@@ -43,6 +47,12 @@ from modules import *
 app.config['SECRET_KEY'] = 'super-secret-key-change-this'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@188.113.183.125:6033/pulse'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+    'pool_pre_ping': True,
+    'pool_recycle': 1800,
+    'pool_timeout': 10,
+    'connect_args': {'connect_timeout': 5},
+}
 
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -50,6 +60,59 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db.init_app(app.app)
+
+
+def wait_for_database(attempts=4):
+    """Проверяет соединение с БД и повторяет попытки при временной ошибке.
+
+    attempts=None означает повторять попытки до восстановления БД.
+    Вызывать только внутри контекста приложения Flask.
+    """
+    attempt = 0
+    while attempts is None or attempt < attempts:
+        attempt += 1
+        try:
+            with db.engine.connect() as connection:
+                connection.execute(text('SELECT 1'))
+            if attempt > 1:
+                app.logger.info('Соединение с базой данных восстановлено.')
+            return True
+        except (OperationalError, InterfaceError) as exc:
+            db.session.remove()
+            if attempts is not None and attempt >= attempts:
+                app.logger.error(
+                    'База данных недоступна после %s попыток: %s',
+                    attempt,
+                    exc,
+                )
+                return False
+
+            delay = min(2 ** (attempt - 1), 10)
+            app.logger.warning(
+                'База данных недоступна (попытка %s%s): %s. Повтор через %s сек.',
+                attempt,
+                f'/{attempts}' if attempts is not None else '',
+                exc,
+                delay,
+            )
+            time.sleep(delay)
+
+
+@app.app.before_request
+def ensure_database_connection():
+    # Статические файлы не требуют обращения к БД.
+    if request.endpoint == 'static':
+        return None
+
+    if wait_for_database(attempts=4):
+        return None
+
+    message = 'База данных временно недоступна. Попробуйте позже.'
+    if request.path.startswith('/api/'):
+        return jsonify({'error': message, 'status': 503}), 503
+    return message, 503
+
+
 login_manager = LoginManager()
 login_manager.init_app(app.app)
 login_manager.login_view = 'login.login'
@@ -225,6 +288,8 @@ def profile():
 # === Запуск ===
 if __name__ == '__main__':
     with app.app_context():
+        # При старте ждём восстановления БД, вместо немедленного падения.
+        wait_for_database(attempts=None)
         db.create_all()
 
         app.register_blueprints([
