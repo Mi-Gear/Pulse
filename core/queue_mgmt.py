@@ -18,10 +18,12 @@ def admin_queue_create():
         description = request.form.get('description')
         queue_type = request.form.get('queue_type', 'default')
         admin_ids = request.form.getlist('admin_ids')
+        allowed_queue_ids = request.form.getlist('allowed_queue_ids')
         
         if Queue.query.filter_by(name=name).first():
             flash('Очередь с таким названием уже существует!', 'danger')
-            return render_template('admin_queue_form.html', users=User.query.all())
+            return render_template('admin_queue_form.html', users=User.query.all(),
+                                   queues=Queue.query.filter_by(is_active=True).order_by(Queue.name).all())
         
         queue = Queue(
             name=name,
@@ -30,8 +32,15 @@ def admin_queue_create():
             created_by_id=current_user.id
         )
         db.session.add(queue)
-        db.session.commit()
-        
+        db.session.flush()
+
+        queue.allowed_destinations = [
+            target for target in Queue.query.filter(
+                Queue.id.in_([int(value) for value in allowed_queue_ids if value.isdigit()]),
+                Queue.id != queue.id
+            ).all()
+        ]
+
         for admin_id in admin_ids:
             user = User.query.get(admin_id)
             if user:
@@ -41,7 +50,8 @@ def admin_queue_create():
         flash(f'Очередь "{name}" создана!', 'success')
         return redirect(url_for('my_queues.my_queues'))
     
-    return render_template('admin_queue_form.html', users=User.query.all())
+    return render_template('admin_queue_form.html', users=User.query.all(),
+                           queues=Queue.query.filter_by(is_active=True).order_by(Queue.name).all())
 
 @queue_mgmt_bp.route('/admin/queue/<int:queue_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -57,16 +67,25 @@ def admin_queue_edit(queue_id):
         is_active = request.form.get('is_active') == 'on'
         queue_type = request.form.get('queue_type', 'default')
         admin_ids = request.form.getlist('admin_ids')
+        allowed_queue_ids = request.form.getlist('allowed_queue_ids')
         
         existing = Queue.query.filter(Queue.name == name, Queue.id != queue_id).first()
         if existing:
             flash('Очередь с таким названием уже существует!', 'danger')
-            return render_template('admin_queue_form.html', queue=queue, users=User.query.all())
+            return render_template('admin_queue_form.html', queue=queue, users=User.query.all(),
+                                   queues=Queue.query.filter(Queue.id != queue_id, Queue.is_active == True).order_by(Queue.name).all())
         
         queue.name = name
         queue.description = description
         queue.is_active = is_active
         queue.queue_type = queue_type
+
+        queue.allowed_destinations = [
+            target for target in Queue.query.filter(
+                Queue.id.in_([int(value) for value in allowed_queue_ids if value.isdigit()]),
+                Queue.id != queue.id
+            ).all()
+        ]
         
         queue.admins = []
         for admin_id in admin_ids:
@@ -78,7 +97,8 @@ def admin_queue_edit(queue_id):
         flash(f'Очередь "{name}" обновлена!', 'success')
         return redirect(url_for('my_queues.my_queues'))
     
-    return render_template('admin_queue_form.html', queue=queue, users=User.query.all())
+    return render_template('admin_queue_form.html', queue=queue, users=User.query.all(),
+                           queues=Queue.query.filter(Queue.id != queue_id, Queue.is_active == True).order_by(Queue.name).all())
 
 @queue_mgmt_bp.route('/admin/queue/<int:queue_id>/delete', methods=['POST'])
 @login_required

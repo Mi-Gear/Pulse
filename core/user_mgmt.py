@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash
 from sqlalchemy import or_
-from models import db, User, Ticket
+from models import db, User, Ticket, Queue
 from config import TIMEZONES
 
 user_mgmt_bp = Blueprint('user_mgmt', __name__)
@@ -29,7 +29,7 @@ def admin_users():
             )
         )
     if department:
-        query = query.filter(User.department == department)
+        query = query.filter(User.queues.any(Queue.name == department))
     if position:
         query = query.filter(User.position == position)
     if office:
@@ -43,7 +43,7 @@ def admin_users():
     
     users = query.order_by(User.full_name).all()
     
-    departments = sorted(set(u.department for u in User.query.all() if u.department))
+    departments = sorted({q.name for q in Queue.query.all()})
     positions = sorted(set(u.position for u in User.query.all() if u.position))
     offices = sorted(set(u.office for u in User.query.all() if u.office))
     
@@ -65,10 +65,14 @@ def admin_user_create():
         password = request.form.get('password')
         full_name = request.form.get('full_name')
         phone = request.form.get('phone')
-        department = request.form.get('department')
         position = request.form.get('position')
         office = request.form.get('office')
-        role = request.form.get('role') == 'on'
+        try:
+            role = int(request.form.get('role', 1))
+        except (TypeError, ValueError):
+            role = 1
+        if role not in (0, 1, 2):
+            role = 1
         notify_email = request.form.get('notify_email') == 'on'
         
         if User.query.filter_by(username=username).first():
@@ -85,10 +89,9 @@ def admin_user_create():
             password=generate_password_hash(password),
             full_name=full_name,
             phone=phone,
-            department=department,
             position=position,
             office=office,
-            is_admin=is_admin,
+            role=role,
             notify_email=notify_email
         )
         db.session.add(user)
@@ -111,11 +114,15 @@ def admin_user_edit(user_id):
         email = request.form.get('email')
         full_name = request.form.get('full_name')
         phone = request.form.get('phone')
-        department = request.form.get('department')
         position = request.form.get('position')
         office = request.form.get('office')
         timezone = request.form.get('timezone', 'Europe/Moscow')
-        is_admin = request.form.get('is_admin') == 'on'
+        try:
+            role = int(request.form.get('role', user.role))
+        except (TypeError, ValueError):
+            role = user.role
+        if role not in (0, 1, 2):
+            role = user.role
         notify_email = request.form.get('notify_email') == 'on'
         
         existing_username = User.query.filter(User.username == username, User.id != user_id).first()
@@ -132,11 +139,10 @@ def admin_user_edit(user_id):
         user.email = email
         user.full_name = full_name
         user.phone = phone
-        user.department = department
         user.position = position
         user.office = office
         user.timezone = timezone
-        user.is_admin = is_admin
+        user.role = role
         user.notify_email = notify_email
         
         password = request.form.get('password')

@@ -95,5 +95,5 @@ def api_users():
         'position': u.position,
         'office': u.office,
         'timezone': u.timezone,
-        'is_admin': u.is_admin
+        'role': u.role
     } for u in users])
