@@ -74,8 +74,18 @@ def metrologist_docx(ticket_id):
         'ticket_number': ticket.ticket_number or '',
         'request_type': metro.request_type or '',
         'equipment_count': len(rows),
+        'department': Queue.query.get_or_404(ticket.created_by_id).name,
+        'name': User.query.get_or_404(ticket.created_by_id).full_name,
+        'position': User.query.get_or_404(ticket.created_by_id).position
+        
     }
+    match data['request_type']:
+        case "repair":
+            data['request_type'] = "Заявка на ремонт"
+        case "service":
+            data['request_type'] = "Заявка на обслуживание"
 
+    
     doc = Document(template_path)
 
     # ---------------------------------------------------------
