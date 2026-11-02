@@ -81,9 +81,15 @@ def metrologist_docx(ticket_id):
     }
     match data['request_type']:
         case "repair":
-            data['request_type'] = "Заявка на ремонт"
+            data['request_type'] = "Заявка на ремонт оборудования"
         case "service":
-            data['request_type'] = "Заявка на обслуживание"
+            data['request_type'] = "Заявка на обслуживание оборудования"
+        case "writeoff":
+            data['request_type'] = "Заявка на списание оборудования"
+        case "purchase":
+            data['request_type'] = "Заявка на приобретение оборудования"
+        case "verification":
+            data['request_type'] = "Заявка на поверку оборудования"
 
     
     doc = Document(template_path)
