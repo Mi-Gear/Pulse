@@ -857,17 +857,17 @@ METROLOGIST_TYPES = {
             ('production_year', 'Год выпуска', 'number', False),
         ]
     },
-    'purchase': {
-        'label': 'Заявка на приобретение',
-        'title': 'Заявка на приобретение',
-        'fields': [
-            ('equipment_name', 'Наименование оборудования', 'text', True),
-            ('quantity', 'Количество единиц', 'number', True),
-            ('mz_order', 'Приказ МЗ РФ', 'text', False),
-            ('purchase_justification', 'Обоснование целесообразности приобретения', 'textarea', True),
-            ('registration_certificate', 'НКМИ (Код вида медицинского изделия)', 'text', False),
-        ]
-    },
+    #'purchase': {
+    #    'label': 'Заявка на приобретение',
+    #    'title': 'Заявка на приобретение',
+    #    'fields': [
+    #        ('equipment_name', 'Наименование оборудования', 'text', True),
+    #        ('quantity', 'Количество единиц', 'number', True),
+    #        ('mz_order', 'Приказ МЗ РФ', 'text', False),
+    #        ('purchase_justification', 'Обоснование целесообразности приобретения', 'textarea', True),
+    #        ('registration_certificate', 'НКМИ (Код вида медицинского изделия)', 'text', False),
+    #    ]
+    #},
     'repair': {
         'label': 'Заявка на ремонт',
         'title': 'Заявка на ремонт',
@@ -882,29 +882,29 @@ METROLOGIST_TYPES = {
             ('hazard_class', 'Класс опасности', 'text', False),
         ]
     },
-    'service': {
-        'label': 'Заявка на обслуживание',
-        'title': 'Заявка на обслуживание',
-        'fields': [
-            ('equipment_name', 'Наименование оборудования', 'text', True),
-            ('inventory_number', 'Инвентарный номер', 'text', True),
-            ('serial_number', 'Заводской номер', 'text', False),
-            ('production_year', 'Год выпуска', 'number', False),
-            ('service_period', 'Периодичность обслуживания согласно паспорта', 'text', True),
-            ('registration_certificate', 'НКМИ (Код вида медицинского изделия)', 'text', False),
-        ]
-    },
-    'verification': {
-        'label': 'Заявка на поверку',
-        'title': 'Заявка на поверку',
-        'fields': [
-            ('equipment_name', 'Наименование оборудования', 'text', True),
-            ('inventory_number', 'Инвентарный номер', 'text', True),
-            ('serial_number', 'Заводской номер', 'text', False),
-            ('verification_period', 'Периодичность поверки согласно паспорта', 'text', True),
-            ('last_verification_date', 'Дата последней поверки', 'date', False),
-        ]
-    },
+    #'service': {
+    #    'label': 'Заявка на обслуживание',
+    #    'title': 'Заявка на обслуживание',
+    #    'fields': [
+    #        ('equipment_name', 'Наименование оборудования', 'text', True),
+    #        ('inventory_number', 'Инвентарный номер', 'text', True),
+    #        ('serial_number', 'Заводской номер', 'text', False),
+    #        ('production_year', 'Год выпуска', 'number', False),
+    #        ('service_period', 'Периодичность обслуживания согласно паспорта', 'text', True),
+    #        ('registration_certificate', 'НКМИ (Код вида медицинского изделия)', 'text', False),
+    #    ]
+    #},
+    #'verification': {
+    #    'label': 'Заявка на поверку',
+    #    'title': 'Заявка на поверку',
+    #    'fields': [
+    #        ('equipment_name', 'Наименование оборудования', 'text', True),
+    #        ('inventory_number', 'Инвентарный номер', 'text', True),
+    #        ('serial_number', 'Заводской номер', 'text', False),
+    #        ('verification_period', 'Периодичность поверки согласно паспорта', 'text', True),
+    #        ('last_verification_date', 'Дата последней поверки', 'date', False),
+    #    ]
+    #},
 }
 
 def is_metrologists_queue(queue):
