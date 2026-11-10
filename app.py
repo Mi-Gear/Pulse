@@ -43,9 +43,22 @@ import pytz
 
 from modules import *
 
+def load_settings(path="run_settings.txt"):
+    settings = {}
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            key, _, value = line.partition("=")
+            settings[key.strip()] = value.strip()
+    return settings
+
+cfg = load_settings()
+
 
 app.config['SECRET_KEY'] = 'super-secret-key-change-this'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@188.113.183.125:6033/pulse'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+pymysql://root:root@{cfg['ip']}:{cfg['port']}/pulse'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
@@ -334,7 +347,7 @@ if __name__ == '__main__':
     app.run(
         debug=True,
         host='0.0.0.0',
-        port=80,
+        port=int(cfg['app_port']),
         use_reloader=False
     )
     
