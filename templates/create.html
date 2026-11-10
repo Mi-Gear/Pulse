@@ -176,97 +176,6 @@
 
                     </div>
 
-
-                    <!-- ================= ФАЙЛЫ ================= -->
-
-                    <div class="mb-3">
-
-                        <label class="form-label-modern">
-
-                            <i class="fas fa-paperclip me-1"></i>
-
-                            Прикрепить файлы
-
-                            <span class="text-muted small fw-normal ms-1">
-                                (необязательно)
-                            </span>
-
-                        </label>
-
-
-                        <div
-                            class="file-upload-zone"
-                            id="uploadZone"
-                        >
-
-                            <div class="file-upload-content">
-
-                                <div class="file-upload-icon">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                </div>
-
-                                <div class="file-upload-text">
-                                    Перетащите файлы сюда
-                                </div>
-
-                                <div class="file-upload-hint">
-                                    или нажмите для выбора
-                                </div>
-
-                                <div class="file-upload-formats">
-                                    PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, ZIP, RAR до 16MB
-                                </div>
-
-                                <input
-                                    type="file"
-                                    name="files"
-                                    id="fileInput"
-                                    multiple
-                                >
-
-                            </div>
-
-                        </div>
-
-
-                        <div
-                            class="file-list-container"
-                            id="fileListContainer"
-                            style="display:none;"
-                        >
-
-                            <div class="file-list-header">
-
-                                <span>
-                                    <i class="fas fa-list me-1"></i>
-
-                                    Выбрано файлов:
-
-                                    <span id="fileCount">0</span>
-                                </span>
-
-
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-modern text-danger"
-                                    onclick="clearAllFiles()"
-                                >
-                                    <i class="fas fa-trash-alt me-1"></i>
-                                    Очистить все
-                                </button>
-
-                            </div>
-
-
-                            <div
-                                class="file-list-grid"
-                                id="fileListGrid"
-                            ></div>
-
-                        </div>
-
-                    </div>
-
                 </div>
 
 
@@ -646,204 +555,6 @@
 
 
 /* ============================================================
-   ФАЙЛЫ
-   ============================================================ */
-
-.file-upload-zone {
-    border: 2px dashed #d1d5db;
-
-    border-radius: 12px;
-
-    padding: 30px 20px;
-
-    text-align: center;
-
-    transition: all .3s ease;
-
-    background: #fafbfc;
-
-    cursor: pointer;
-
-    position: relative;
-}
-
-.file-upload-zone:hover,
-.file-upload-zone.dragover {
-    border-color: #10b981;
-
-    background: #ecfdf5;
-}
-
-.file-upload-zone.dragover {
-    transform: scale(1.01);
-}
-
-.file-upload-zone .file-upload-icon {
-    font-size: 2.5rem;
-
-    color: #94a3b8;
-
-    margin-bottom: 6px;
-}
-
-.file-upload-zone .file-upload-text {
-    font-size: 1rem;
-
-    color: #1a202c;
-
-    font-weight: 500;
-}
-
-.file-upload-zone .file-upload-hint {
-    font-size: .85rem;
-
-    color: #94a3b8;
-}
-
-.file-upload-zone .file-upload-formats {
-    font-size: .75rem;
-
-    color: #94a3b8;
-
-    margin-top: 6px;
-
-    background: #f1f5f9;
-
-    padding: 4px 12px;
-
-    border-radius: 12px;
-
-    display: inline-block;
-}
-
-.file-upload-zone input[type=file] {
-    position: absolute;
-
-    inset: 0;
-
-    opacity: 0;
-
-    cursor: pointer;
-}
-
-.file-list-container {
-    margin-top: 12px;
-
-    background: #f8fafc;
-
-    border-radius: 10px;
-
-    padding: 12px;
-
-    border: 1px solid #e2e8f0;
-}
-
-.file-list-header {
-    display: flex;
-
-    justify-content: space-between;
-
-    align-items: center;
-
-    padding-bottom: 10px;
-
-    border-bottom: 1px solid #e2e8f0;
-
-    font-size: .85rem;
-
-    color: #475569;
-}
-
-.file-list-grid {
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 6px;
-
-    margin-top: 10px;
-
-    max-height: 200px;
-
-    overflow-y: auto;
-}
-
-.file-item {
-    display: flex;
-
-    align-items: center;
-
-    gap: 10px;
-
-    padding: 8px 12px;
-
-    background: #fff;
-
-    border-radius: 8px;
-
-    border: 1px solid #e2e8f0;
-}
-
-.file-item .file-icon {
-    width: 32px;
-    height: 32px;
-
-    border-radius: 6px;
-
-    display: flex;
-
-    align-items: center;
-    justify-content: center;
-
-    font-size: .9rem;
-
-    flex-shrink: 0;
-
-    background: #f1f5f9;
-}
-
-.file-item .file-info {
-    flex: 1;
-
-    min-width: 0;
-}
-
-.file-item .file-name {
-    font-size: .85rem;
-
-    font-weight: 500;
-
-    white-space: nowrap;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-}
-
-.file-item .file-size {
-    font-size: .7rem;
-
-    color: #94a3b8;
-}
-
-.file-item .file-remove {
-    background: none;
-
-    border: 0;
-
-    color: #94a3b8;
-
-    cursor: pointer;
-
-    padding: 4px 8px;
-}
-
-.file-item .file-remove:hover {
-    color: #dc2626;
-}
-
-
-/* ============================================================
    MOBILE
    ============================================================ */
 
@@ -851,18 +562,6 @@
 
     .metro-row {
         padding: 12px;
-    }
-
-    .file-upload-zone {
-        padding: 20px 16px;
-    }
-
-    .file-list-header {
-        flex-direction: column;
-
-        gap: 6px;
-
-        align-items: flex-start;
     }
 
 }
@@ -880,7 +579,16 @@ const METROLOGIST_TYPES = {{ metrologist_types | tojson }};
 
 const METRO_QUEUE_NAME = 'Инженеры-метрологи';
 
+/* Минимальная длина текстовых полей (textarea) */
+const METRO_TEXTAREA_MIN_LENGTH = 40;
+
 let metroRows = [];
+
+
+/* Проверка: является ли поле текстовым (описание неисправности и т.п.) */
+function isMetroTextareaField(key, fieldType) {
+    return fieldType === 'textarea';
+}
 
 
 /* ============================================================
@@ -1123,19 +831,21 @@ function renderMetroRows() {
 
                 else if (fieldType === 'textarea') {
 
-                    inputHtml = `
+    inputHtml = `
 
-                        <textarea
-                            class="form-control-modern metro-input"
-                            data-key="${key}"
-                            rows="3"
-                            placeholder="Введите значение..."
-                            ${required ? 'required' : ''}
-                        >${safeValue}</textarea>
+        <textarea
+            class="form-control-modern metro-input"
+            data-key="${key}"
+            data-minlength="${METRO_TEXTAREA_MIN_LENGTH}"
+            rows="3"
+            minlength="${METRO_TEXTAREA_MIN_LENGTH}"
+            placeholder="Введите значение (не менее ${METRO_TEXTAREA_MIN_LENGTH} символов)..."
+            ${required ? 'required' : ''}
+        >${safeValue}</textarea>
 
-                    `;
+    `;
 
-                }
+}
 
                 /* ============================================
                    ОБЫЧНЫЙ INPUT
@@ -2191,282 +1901,6 @@ document
         'change',
         updateDeadline
     );
-
-
-/* ============================================================
-   ФАЙЛЫ
-   ============================================================ */
-
-const uploadZone =
-    document.getElementById(
-        'uploadZone'
-    );
-
-
-const fileInput =
-    document.getElementById(
-        'fileInput'
-    );
-
-
-const fileListContainer =
-    document.getElementById(
-        'fileListContainer'
-    );
-
-
-const fileListGrid =
-    document.getElementById(
-        'fileListGrid'
-    );
-
-
-const fileCount =
-    document.getElementById(
-        'fileCount'
-    );
-
-
-/* Drag over */
-
-uploadZone.addEventListener(
-    'dragover',
-    e => {
-
-        e.preventDefault();
-
-        uploadZone.classList.add(
-            'dragover'
-        );
-
-    }
-);
-
-
-/* Drag leave */
-
-uploadZone.addEventListener(
-    'dragleave',
-    e => {
-
-        e.preventDefault();
-
-        uploadZone.classList.remove(
-            'dragover'
-        );
-
-    }
-);
-
-
-/* Drop */
-
-uploadZone.addEventListener(
-    'drop',
-    e => {
-
-        e.preventDefault();
-
-        uploadZone.classList.remove(
-            'dragover'
-        );
-
-
-        if (
-            e.dataTransfer.files.length
-        ) {
-
-            fileInput.files =
-                e.dataTransfer.files;
-
-
-            updateFileList();
-
-        }
-
-    }
-);
-
-
-/* Выбор файлов */
-
-fileInput.addEventListener(
-    'change',
-    updateFileList
-);
-
-
-/* ============================================================
-   СПИСОК ФАЙЛОВ
-   ============================================================ */
-
-function updateFileList() {
-
-    const files =
-        fileInput.files;
-
-
-    fileListGrid.innerHTML = '';
-
-
-    if (!files.length) {
-
-        fileListContainer.style.display =
-            'none';
-
-        return;
-
-    }
-
-
-    fileListContainer.style.display =
-        'block';
-
-
-    fileCount.textContent =
-        files.length;
-
-
-    for (
-        let i = 0;
-        i < files.length;
-        i++
-    ) {
-
-        const file =
-            files[i];
-
-
-        const ext =
-            file.name.includes('.')
-                ? file.name
-                    .split('.')
-                    .pop()
-                    .toUpperCase()
-                : 'FILE';
-
-
-        const div =
-            document.createElement(
-                'div'
-            );
-
-
-        div.className =
-            'file-item';
-
-
-        div.innerHTML = `
-
-            <div class="file-icon">
-
-                <i class="fas fa-file"></i>
-
-            </div>
-
-
-            <div class="file-info">
-
-                <div class="file-name">
-
-                    ${escapeHtml(file.name)}
-
-                </div>
-
-                <div class="file-size">
-
-                    ${(file.size / 1024).toFixed(1)}
-                    KB · ${ext}
-
-                </div>
-
-            </div>
-
-
-            <button
-                type="button"
-                class="file-remove"
-                onclick="removeFile(${i})"
-            >
-
-                <i class="fas fa-times"></i>
-
-            </button>
-
-        `;
-
-
-        fileListGrid.appendChild(
-            div
-        );
-
-    }
-
-}
-
-
-/* ============================================================
-   УДАЛИТЬ ФАЙЛ
-   ============================================================ */
-
-function removeFile(index) {
-
-    const dt =
-        new DataTransfer();
-
-
-    Array
-        .from(fileInput.files)
-        .forEach(
-            (file, i) => {
-
-                if (i !== index) {
-
-                    dt.items.add(file);
-
-                }
-
-            }
-        );
-
-
-    fileInput.files =
-        dt.files;
-
-
-    updateFileList();
-
-}
-
-
-/* ============================================================
-   ОЧИСТИТЬ ФАЙЛЫ
-   ============================================================ */
-
-function clearAllFiles() {
-
-    if (
-        !fileInput.files.length
-    ) {
-
-        return;
-
-    }
-
-
-    if (
-        confirm(
-            'Удалить все выбранные файлы?'
-        )
-    ) {
-
-        fileInput.value = '';
-
-        updateFileList();
-
-    }
-
-}
 
 
 /* ============================================================
