@@ -123,7 +123,7 @@ def metrologist_docx(ticket_id):
     # ---------------------------------------------------------
     department = User.query.get_or_404(ticket.created_by_id).queues[0].name
     name = User.query.get_or_404(ticket.created_by_id).full_name
-    gen_name = (to_genitive(name)).split[0] + (to_genitive(name)).split[1][0]+". "+(to_genitive(name)).split[2][0]+'.'
+    gen_name = (to_genitive(name)).split(' ')[0] + (to_genitive(name)).split(' ')[1][0]+". "+(to_genitive(name)).split(' ')[2][0]+'.'
     data = {
         'ticket_id': ticket.id,
         'ticket_number': ticket.ticket_number or '',
