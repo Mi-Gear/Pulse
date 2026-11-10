@@ -32,10 +32,63 @@ import uuid
 import io
 import pandas as pd
 import pytz
+import pymorphy3
 
 from io import BytesIO
+import pymorphy3
+
+morph = pymorphy3.MorphAnalyzer()
+
+def decline_word(word):
+    word = word.strip()
+    if not word:
+        return ""
+        
+    # Запоминаем, была ли первая буква заглавной
+    is_capitalized = word[0].isupper()
+    
+    # Приводим слово к нижнему регистру для всех проверок и pymorphy
+    w_lower = word.lower()
+    
+    result = ""
+    
+    # 1. ФАМИЛИИ НА -ИНА
+    if w_lower.endswith('ина'):
+        if w_lower in ('ирина', 'марина', 'полина', 'алина', 'карина', 'ангелина', 'галина'):
+            result = w_lower[:-1] + 'ы'
+        else:
+            result = w_lower[:-1] + 'ой'
+            
+    # 2. МУЖСКИЕ ФАМИЛИИ НА -ИН
+    elif w_lower.endswith('ин'):
+        result = w_lower + 'а'
+
+    # 3. ВСЁ ОСТАЛЬНОЕ ЧЕРЕЗ PYMORPHY
+    else:
+        try:
+            p = morph.parse(w_lower)[0] # Парсим слово в нижнем регистре
+            inflected = p.inflect({'gent'})
+            if inflected:
+                result = inflected.word
+            else:
+                result = w_lower
+        except Exception as e:
+            print(f"ОШИБКА PYMORPHY на слове {word}: {e}")
+            result = w_lower
+
+    # Если исходное слово было с заглавной буквы — делаем первую букву заглавной
+    if is_capitalized and result:
+        result = result[0].upper() + result[1:]
+        
+    return result
+
+def to_genitive(phrase):
+    if not phrase:
+        return ""
+    return " ".join(decline_word(w) for w in phrase.split())
 
 tickets_bp = Blueprint('tickets', __name__)
+
 
 @tickets_bp.route('/tickets/<int:ticket_id>/metrologist/docx')
 @login_required
@@ -68,15 +121,17 @@ def metrologist_docx(ticket_id):
     # ---------------------------------------------------------
     # Данные для обычных {placeholder}
     # ---------------------------------------------------------
-
+    department = User.query.get_or_404(ticket.created_by_id).queues[0].name
+    name = User.query.get_or_404(ticket.created_by_id).full_name
     data = {
         'ticket_id': ticket.id,
         'ticket_number': ticket.ticket_number or '',
         'request_type': metro.request_type or '',
         'equipment_count': len(rows),
-        'department': Queue.query.get_or_404(ticket.created_by_id).name,
-        'name': User.query.get_or_404(ticket.created_by_id).full_name,
-        'position': User.query.get_or_404(ticket.created_by_id).position
+        'department': to_genitive(department),
+        'name': name,
+        'position': to_genitive(User.query.get_or_404(ticket.created_by_id).position.lower()),
+        'gen_name': to_genitive(name)
         
     }
     match data['request_type']:

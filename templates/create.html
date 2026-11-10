@@ -880,7 +880,16 @@ const METROLOGIST_TYPES = {{ metrologist_types | tojson }};
 
 const METRO_QUEUE_NAME = 'Инженеры-метрологи';
 
+/* Минимальная длина текстовых полей (textarea) */
+const METRO_TEXTAREA_MIN_LENGTH = 40;
+
 let metroRows = [];
+
+
+/* Проверка: является ли поле текстовым (описание неисправности и т.п.) */
+function isMetroTextareaField(key, fieldType) {
+    return fieldType === 'textarea';
+}
 
 
 /* ============================================================
@@ -1123,19 +1132,21 @@ function renderMetroRows() {
 
                 else if (fieldType === 'textarea') {
 
-                    inputHtml = `
+    inputHtml = `
 
-                        <textarea
-                            class="form-control-modern metro-input"
-                            data-key="${key}"
-                            rows="3"
-                            placeholder="Введите значение..."
-                            ${required ? 'required' : ''}
-                        >${safeValue}</textarea>
+        <textarea
+            class="form-control-modern metro-input"
+            data-key="${key}"
+            data-minlength="${METRO_TEXTAREA_MIN_LENGTH}"
+            rows="3"
+            minlength="${METRO_TEXTAREA_MIN_LENGTH}"
+            placeholder="Введите значение (не менее ${METRO_TEXTAREA_MIN_LENGTH} символов)..."
+            ${required ? 'required' : ''}
+        >${safeValue}</textarea>
 
-                    `;
+    `;
 
-                }
+}
 
                 /* ============================================
                    ОБЫЧНЫЙ INPUT
