@@ -171,6 +171,98 @@
                             <i class="fas fa-info-circle me-1"></i>
 
                             Одной заявкой можно указать несколько единиц оборудования.
+                            Все поля обязательны для заполнения.
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ================= ФАЙЛЫ ================= -->
+
+                    <div class="mb-3">
+
+                        <label class="form-label-modern">
+
+                            <i class="fas fa-paperclip me-1"></i>
+
+                            Прикрепить файлы
+
+                            <span class="text-muted small fw-normal ms-1">
+                                (необязательно)
+                            </span>
+
+                        </label>
+
+
+                        <div
+                            class="file-upload-zone"
+                            id="uploadZone"
+                        >
+
+                            <div class="file-upload-content">
+
+                                <div class="file-upload-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+
+                                <div class="file-upload-text">
+                                    Перетащите файлы сюда
+                                </div>
+
+                                <div class="file-upload-hint">
+                                    или нажмите для выбора
+                                </div>
+
+                                <div class="file-upload-formats">
+                                    PDF, DOC, DOCX, XLS, XLSX, PNG, JPG, ZIP, RAR до 16MB
+                                </div>
+
+                                <input
+                                    type="file"
+                                    name="files"
+                                    id="fileInput"
+                                    multiple
+                                >
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            class="file-list-container"
+                            id="fileListContainer"
+                            style="display:none;"
+                        >
+
+                            <div class="file-list-header">
+
+                                <span>
+                                    <i class="fas fa-list me-1"></i>
+
+                                    Выбрано файлов:
+
+                                    <span id="fileCount">0</span>
+                                </span>
+
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-modern text-danger"
+                                    onclick="clearAllFiles()"
+                                >
+                                    <i class="fas fa-trash-alt me-1"></i>
+                                    Очистить все
+                                </button>
+
+                            </div>
+
+
+                            <div
+                                class="file-list-grid"
+                                id="fileListGrid"
+                            ></div>
 
                         </div>
 
@@ -555,6 +647,204 @@
 
 
 /* ============================================================
+   ФАЙЛЫ
+   ============================================================ */
+
+.file-upload-zone {
+    border: 2px dashed #d1d5db;
+
+    border-radius: 12px;
+
+    padding: 30px 20px;
+
+    text-align: center;
+
+    transition: all .3s ease;
+
+    background: #fafbfc;
+
+    cursor: pointer;
+
+    position: relative;
+}
+
+.file-upload-zone:hover,
+.file-upload-zone.dragover {
+    border-color: #10b981;
+
+    background: #ecfdf5;
+}
+
+.file-upload-zone.dragover {
+    transform: scale(1.01);
+}
+
+.file-upload-zone .file-upload-icon {
+    font-size: 2.5rem;
+
+    color: #94a3b8;
+
+    margin-bottom: 6px;
+}
+
+.file-upload-zone .file-upload-text {
+    font-size: 1rem;
+
+    color: #1a202c;
+
+    font-weight: 500;
+}
+
+.file-upload-zone .file-upload-hint {
+    font-size: .85rem;
+
+    color: #94a3b8;
+}
+
+.file-upload-zone .file-upload-formats {
+    font-size: .75rem;
+
+    color: #94a3b8;
+
+    margin-top: 6px;
+
+    background: #f1f5f9;
+
+    padding: 4px 12px;
+
+    border-radius: 12px;
+
+    display: inline-block;
+}
+
+.file-upload-zone input[type=file] {
+    position: absolute;
+
+    inset: 0;
+
+    opacity: 0;
+
+    cursor: pointer;
+}
+
+.file-list-container {
+    margin-top: 12px;
+
+    background: #f8fafc;
+
+    border-radius: 10px;
+
+    padding: 12px;
+
+    border: 1px solid #e2e8f0;
+}
+
+.file-list-header {
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding-bottom: 10px;
+
+    border-bottom: 1px solid #e2e8f0;
+
+    font-size: .85rem;
+
+    color: #475569;
+}
+
+.file-list-grid {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
+    margin-top: 10px;
+
+    max-height: 200px;
+
+    overflow-y: auto;
+}
+
+.file-item {
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 8px 12px;
+
+    background: #fff;
+
+    border-radius: 8px;
+
+    border: 1px solid #e2e8f0;
+}
+
+.file-item .file-icon {
+    width: 32px;
+    height: 32px;
+
+    border-radius: 6px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    font-size: .9rem;
+
+    flex-shrink: 0;
+
+    background: #f1f5f9;
+}
+
+.file-item .file-info {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.file-item .file-name {
+    font-size: .85rem;
+
+    font-weight: 500;
+
+    white-space: nowrap;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+}
+
+.file-item .file-size {
+    font-size: .7rem;
+
+    color: #94a3b8;
+}
+
+.file-item .file-remove {
+    background: none;
+
+    border: 0;
+
+    color: #94a3b8;
+
+    cursor: pointer;
+
+    padding: 4px 8px;
+}
+
+.file-item .file-remove:hover {
+    color: #dc2626;
+}
+
+
+/* ============================================================
    MOBILE
    ============================================================ */
 
@@ -562,6 +852,18 @@
 
     .metro-row {
         padding: 12px;
+    }
+
+    .file-upload-zone {
+        padding: 20px 16px;
+    }
+
+    .file-list-header {
+        flex-direction: column;
+
+        gap: 6px;
+
+        align-items: flex-start;
     }
 
 }
@@ -775,10 +1077,11 @@ function renderMetroRows() {
                     escapeHtml(value);
 
 
-                const labelClass =
-                    required
-                        ? 'metro-required'
-                        : '';
+                /* ============================================
+                   ВСЕ ПОЛЯ ОБЯЗАТЕЛЬНЫ ДЛЯ ВСЕХ ТИПОВ ЗАЯВОК
+                   ============================================ */
+
+                const labelClass = 'metro-required';
 
 
                 let inputHtml = '';
@@ -811,7 +1114,7 @@ function renderMetroRows() {
                                 value="${safeValue}"
                                 placeholder="${placeholder}"
                                 autocomplete="off"
-                                ${required ? 'required' : ''}
+                                required
                             >
 
                             <div
@@ -831,21 +1134,21 @@ function renderMetroRows() {
 
                 else if (fieldType === 'textarea') {
 
-    inputHtml = `
+                    inputHtml = `
 
-        <textarea
-            class="form-control-modern metro-input"
-            data-key="${key}"
-            data-minlength="${METRO_TEXTAREA_MIN_LENGTH}"
-            rows="3"
-            minlength="${METRO_TEXTAREA_MIN_LENGTH}"
-            placeholder="Введите значение (не менее ${METRO_TEXTAREA_MIN_LENGTH} символов)..."
-            ${required ? 'required' : ''}
-        >${safeValue}</textarea>
+                        <textarea
+                            class="form-control-modern metro-input"
+                            data-key="${key}"
+                            data-minlength="${METRO_TEXTAREA_MIN_LENGTH}"
+                            rows="3"
+                            minlength="${METRO_TEXTAREA_MIN_LENGTH}"
+                            placeholder="Введите значение (не менее ${METRO_TEXTAREA_MIN_LENGTH} символов)..."
+                            required
+                        >${safeValue}</textarea>
 
-    `;
+                    `;
 
-}
+                }
 
                 /* ============================================
                    ОБЫЧНЫЙ INPUT
@@ -861,7 +1164,7 @@ function renderMetroRows() {
                             data-key="${key}"
                             value="${safeValue}"
                             placeholder="Введите значение..."
-                            ${required ? 'required' : ''}
+                            required
                         >
 
                     `;
@@ -1675,7 +1978,9 @@ document
                     METROLOGIST_TYPES[type].fields;
 
 
-                /* Проверяем обязательные поля */
+                /* =========================================
+                   ПРОВЕРКА ВСЕХ ПОЛЕЙ (ВСЕ ОБЯЗАТЕЛЬНЫ)
+                   ========================================= */
 
                 for (
                     let i = 0;
@@ -1687,18 +1992,20 @@ document
                         const [
                             key,
                             label,
-                            fieldType,
-                            required
+                            fieldType
                         ]
                         of fields
                     ) {
 
-                        if (
-                            required &&
-                            !String(
+                        const value =
+                            String(
                                 metroRows[i][key] ?? ''
-                            ).trim()
-                        ) {
+                            ).trim();
+
+
+                        /* Поле не заполнено */
+
+                        if (!value) {
 
                             e.preventDefault();
 
@@ -1712,212 +2019,16 @@ document
 
                         }
 
-                    }
 
-                }
+                        /* Textarea: проверка минимальной длины */
 
+                        if (
+                            isMetroTextareaField(key, fieldType) &&
+                            value.length < METRO_TEXTAREA_MIN_LENGTH
+                        ) {
 
-                /* Записываем JSON */
+                            e.preventDefault();
 
-                document
-                    .getElementById(
-                        'metrologist_rows'
-                    )
-                    .value =
-                        JSON.stringify(
-                            metroRows
-                        );
 
-            }
-
-
-            /* =================================================
-               ОБЫЧНАЯ ЗАЯВКА
-               ================================================= */
-
-            else {
-
-                const title =
-                    document
-                        .getElementById('title')
-                        .value
-                        .trim();
-
-
-                const descriptionHTML =
-                    quill.root.innerHTML;
-
-
-                const descriptionText =
-                    quill.getText().trim();
-
-
-                document
-                    .getElementById(
-                        'description_hidden'
-                    )
-                    .value =
-                        descriptionHTML;
-
-
-                if (
-                    !title ||
-                    !descriptionText
-                ) {
-
-                    e.preventDefault();
-
-                    alert(
-                        'Пожалуйста, заполните название и описание.'
-                    );
-
-                    return;
-
-                }
-
-            }
-
-
-            /* =================================================
-               БЛОКИРУЕМ КНОПКУ
-               ================================================= */
-
-            const submitBtn =
-                document.getElementById(
-                    'submit_button'
-                );
-
-
-            submitBtn.disabled = true;
-
-
-            submitBtn.innerHTML = `
-
-                <i class="fas fa-spinner fa-spin me-1"></i>
-
-                Создание...
-
-            `;
-
-        }
-    );
-
-
-/* ============================================================
-   DEADLINE
-   ============================================================ */
-
-function updateDeadline() {
-
-    const priority =
-        document
-            .getElementById('priority')
-            .value;
-
-
-    const now =
-        new Date();
-
-
-    let hours;
-
-
-    if (priority === 'Высокий') {
-
-        hours = 4;
-
-    } else if (priority === 'Средний') {
-
-        hours = 24;
-
-    } else {
-
-        hours = 72;
-
-    }
-
-
-    const deadline =
-        new Date(
-            now.getTime()
-            +
-            hours * 60 * 60 * 1000
-        );
-
-
-    /*
-     * datetime-local требует локальное время,
-     * поэтому не используем напрямую toISOString(),
-     * иначе появляется сдвиг часового пояса.
-     */
-
-    const year =
-        deadline.getFullYear();
-
-
-    const month =
-        String(
-            deadline.getMonth() + 1
-        ).padStart(2, '0');
-
-
-    const day =
-        String(
-            deadline.getDate()
-        ).padStart(2, '0');
-
-
-    const hour =
-        String(
-            deadline.getHours()
-        ).padStart(2, '0');
-
-
-    const minute =
-        String(
-            deadline.getMinutes()
-        ).padStart(2, '0');
-
-
-    document
-        .getElementById('deadline')
-        .value =
-            `${year}-${month}-${day}T${hour}:${minute}`;
-
-
-    document
-        .getElementById('deadline_info')
-        .textContent =
-            `Автоматически рассчитано: ${deadline.toLocaleString('ru-RU')}`;
-
-}
-
-
-/* Изменение приоритета */
-
-document
-    .getElementById('priority')
-    .addEventListener(
-        'change',
-        updateDeadline
-    );
-
-
-/* ============================================================
-   INITIALIZATION
-   ============================================================ */
-
-document.addEventListener(
-    'DOMContentLoaded',
-    function () {
-
-        updateDeadline();
-
-        updateMode();
-
-    }
-);
-
-</script>
-
-{% endblock %}
+                            alert(
+                                `Позиция №${i + 1}: поле «${label}» должно содержать не менее ${METRO_TEXTAREA_MIN_LENGTH
