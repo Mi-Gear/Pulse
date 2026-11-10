@@ -2031,4 +2031,496 @@ document
 
 
                             alert(
-                                `Позиция №${i + 1}: поле «${label}» должно содержать не менее ${METRO_TEXTAREA_MIN_LENGTH
+                                `Позиция №${i + 1}: поле «${label}» должно содержать не менее ${METRO_TEXTAREA_MIN_LENGTH} символов.`
+                            );
+
+
+                            return;
+
+                        }
+
+                    }
+
+                }
+
+
+                /* Записываем JSON */
+
+                document
+                    .getElementById(
+                        'metrologist_rows'
+                    )
+                    .value =
+                        JSON.stringify(
+                            metroRows
+                        );
+
+            }
+
+
+            /* =================================================
+               ОБЫЧНАЯ ЗАЯВКА
+               ================================================= */
+
+            else {
+
+                const title =
+                    document
+                        .getElementById('title')
+                        .value
+                        .trim();
+
+
+                const descriptionHTML =
+                    quill.root.innerHTML;
+
+
+                const descriptionText =
+                    quill.getText().trim();
+
+
+                document
+                    .getElementById(
+                        'description_hidden'
+                    )
+                    .value =
+                        descriptionHTML;
+
+
+                if (
+                    !title ||
+                    !descriptionText
+                ) {
+
+                    e.preventDefault();
+
+                    alert(
+                        'Пожалуйста, заполните название и описание.'
+                    );
+
+                    return;
+
+                }
+
+            }
+
+
+            /* =================================================
+               БЛОКИРУЕМ КНОПКУ
+               ================================================= */
+
+            const submitBtn =
+                document.getElementById(
+                    'submit_button'
+                );
+
+
+            submitBtn.disabled = true;
+
+
+            submitBtn.innerHTML = `
+
+                <i class="fas fa-spinner fa-spin me-1"></i>
+
+                Создание...
+
+            `;
+
+        }
+    );
+
+
+/* ============================================================
+   DEADLINE
+   ============================================================ */
+
+function updateDeadline() {
+
+    const priority =
+        document
+            .getElementById('priority')
+            .value;
+
+
+    const now =
+        new Date();
+
+
+    let hours;
+
+
+    if (priority === 'Высокий') {
+
+        hours = 4;
+
+    } else if (priority === 'Средний') {
+
+        hours = 24;
+
+    } else {
+
+        hours = 72;
+
+    }
+
+
+    const deadline =
+        new Date(
+            now.getTime()
+            +
+            hours * 60 * 60 * 1000
+        );
+
+
+    /*
+     * datetime-local требует локальное время,
+     * поэтому не используем напрямую toISOString(),
+     * иначе появляется сдвиг часового пояса.
+     */
+
+    const year =
+        deadline.getFullYear();
+
+
+    const month =
+        String(
+            deadline.getMonth() + 1
+        ).padStart(2, '0');
+
+
+    const day =
+        String(
+            deadline.getDate()
+        ).padStart(2, '0');
+
+
+    const hour =
+        String(
+            deadline.getHours()
+        ).padStart(2, '0');
+
+
+    const minute =
+        String(
+            deadline.getMinutes()
+        ).padStart(2, '0');
+
+
+    document
+        .getElementById('deadline')
+        .value =
+            `${year}-${month}-${day}T${hour}:${minute}`;
+
+
+    document
+        .getElementById('deadline_info')
+        .textContent =
+            `Автоматически рассчитано: ${deadline.toLocaleString('ru-RU')}`;
+
+}
+
+
+/* Изменение приоритета */
+
+document
+    .getElementById('priority')
+    .addEventListener(
+        'change',
+        updateDeadline
+    );
+
+
+/* ============================================================
+   ФАЙЛЫ
+   ============================================================ */
+
+const uploadZone =
+    document.getElementById(
+        'uploadZone'
+    );
+
+
+const fileInput =
+    document.getElementById(
+        'fileInput'
+    );
+
+
+const fileListContainer =
+    document.getElementById(
+        'fileListContainer'
+    );
+
+
+const fileListGrid =
+    document.getElementById(
+        'fileListGrid'
+    );
+
+
+const fileCount =
+    document.getElementById(
+        'fileCount'
+    );
+
+
+/* Drag over */
+
+uploadZone.addEventListener(
+    'dragover',
+    e => {
+
+        e.preventDefault();
+
+        uploadZone.classList.add(
+            'dragover'
+        );
+
+    }
+);
+
+
+/* Drag leave */
+
+uploadZone.addEventListener(
+    'dragleave',
+    e => {
+
+        e.preventDefault();
+
+        uploadZone.classList.remove(
+            'dragover'
+        );
+
+    }
+);
+
+
+/* Drop */
+
+uploadZone.addEventListener(
+    'drop',
+    e => {
+
+        e.preventDefault();
+
+        uploadZone.classList.remove(
+            'dragover'
+        );
+
+
+        if (
+            e.dataTransfer.files.length
+        ) {
+
+            fileInput.files =
+                e.dataTransfer.files;
+
+
+            updateFileList();
+
+        }
+
+    }
+);
+
+
+/* Выбор файлов */
+
+fileInput.addEventListener(
+    'change',
+    updateFileList
+);
+
+
+/* ============================================================
+   СПИСОК ФАЙЛОВ
+   ============================================================ */
+
+function updateFileList() {
+
+    const files =
+        fileInput.files;
+
+
+    fileListGrid.innerHTML = '';
+
+
+    if (!files.length) {
+
+        fileListContainer.style.display =
+            'none';
+
+        return;
+
+    }
+
+
+    fileListContainer.style.display =
+        'block';
+
+
+    fileCount.textContent =
+        files.length;
+
+
+    for (
+        let i = 0;
+        i < files.length;
+        i++
+    ) {
+
+        const file =
+            files[i];
+
+
+        const ext =
+            file.name.includes('.')
+                ? file.name
+                    .split('.')
+                    .pop()
+                    .toUpperCase()
+                : 'FILE';
+
+
+        const div =
+            document.createElement(
+                'div'
+            );
+
+
+        div.className =
+            'file-item';
+
+
+        div.innerHTML = `
+
+            <div class="file-icon">
+
+                <i class="fas fa-file"></i>
+
+            </div>
+
+
+            <div class="file-info">
+
+                <div class="file-name">
+
+                    ${escapeHtml(file.name)}
+
+                </div>
+
+                <div class="file-size">
+
+                    ${(file.size / 1024).toFixed(1)}
+                    KB · ${ext}
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="file-remove"
+                onclick="removeFile(${i})"
+            >
+
+                <i class="fas fa-times"></i>
+
+            </button>
+
+        `;
+
+
+        fileListGrid.appendChild(
+            div
+        );
+
+    }
+
+}
+
+
+/* ============================================================
+   УДАЛИТЬ ФАЙЛ
+   ============================================================ */
+
+function removeFile(index) {
+
+    const dt =
+        new DataTransfer();
+
+
+    Array
+        .from(fileInput.files)
+        .forEach(
+            (file, i) => {
+
+                if (i !== index) {
+
+                    dt.items.add(file);
+
+                }
+
+            }
+        );
+
+
+    fileInput.files =
+        dt.files;
+
+
+    updateFileList();
+
+}
+
+
+/* ============================================================
+   ОЧИСТИТЬ ФАЙЛЫ
+   ============================================================ */
+
+function clearAllFiles() {
+
+    if (
+        !fileInput.files.length
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        confirm(
+            'Удалить все выбранные файлы?'
+        )
+    ) {
+
+        fileInput.value = '';
+
+        updateFileList();
+
+    }
+
+}
+
+
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
+
+document.addEventListener(
+    'DOMContentLoaded',
+    function () {
+
+        updateDeadline();
+
+        updateMode();
+
+    }
+);
+
+</script>
+
+{% endblock %}
