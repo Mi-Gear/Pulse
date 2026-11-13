@@ -609,7 +609,7 @@ def metrologist_docx(ticket_id):
 
 def generate_ticket_number():
     year = datetime.now().year
-    prefix = f"SD-{year}-"
+    prefix = f"{year}-"
     last_ticket = Ticket.query.filter(
         Ticket.ticket_number.like(f"{prefix}%")
     ).order_by(Ticket.id.desc()).first()
