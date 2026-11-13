@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from sqlalchemy import or_
+from sqlalchemy import or_, insert,values
 from models import (
     db,
     User,
@@ -14,7 +14,8 @@ from models import (
     Booking,
     MetrologistRequest,
     Equipment,
-    queue_links
+    queue_links,
+    ticket_assignees
 )
 from config import TIMEZONES
 from datetime import datetime, timedelta
@@ -1394,7 +1395,14 @@ async def change_status(ticket_id):
     
     if new_status == 'Закрыта' and ticket.status != 'Закрыта':
         ticket.closed_at = datetime.utcnow()
-    
+    if new_status == "В работе":
+        db.session.execute(
+        insert(ticket_assignees).values(
+            ticket_id=ticket.id,
+            user_id=current_user.id,
+            assigned_at=datetime.utcnow()
+        )
+    )
     ticket.status = new_status
     ticket.updated_at = datetime.utcnow()
     db.session.commit()
