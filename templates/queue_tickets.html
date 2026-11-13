@@ -105,7 +105,7 @@
                     <td>{{ ticket.creator.full_name or ticket.creator.username if ticket.creator else '—' }}</td>
                     <td>
                         {% for assignee in ticket.assignees %}
-                            <span class="badge bg-light text-dark border-0">{{ assignee.username }}</span>
+                            {{ assignee.full_name }}
                         {% else %}
                             <span class="text-muted">—</span>
                         {% endfor %}

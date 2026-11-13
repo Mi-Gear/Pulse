@@ -80,9 +80,7 @@
                         <label class="form-label-modern small text-muted">Ответственные</label>
                         <div class="d-flex flex-wrap gap-1">
                             {% for assignee in ticket.assignees %}
-                                <span class="assignee-badge">
-                                    <span class="assignee-avatar">{{ assignee.username[0]|upper }}</span>
-                                    {{ assignee.username }}
+                                    {{ assignee.full_name }}
                                     {% if ticket.queue and assignee.id == ticket.queue.admin_id %}
                                         <i class="fas fa-crown" style="color: #f59e0b; font-size: 0.7rem; margin-left: 2px;"></i>
                                     {% endif %}
@@ -946,12 +944,12 @@
                             <div class="d-flex gap-2 flex-wrap">
                                 <select class="form-select-modern" name="assignees" multiple style="min-height: 80px;">
                                     <option value="{{ current_user.id }}" {% if current_user in ticket.assignees %}selected{% endif %}>
-                                        {{ current_user.username }} (вы)
+                                        {{ current_user.full_name }} (вы)
                                         {% if current_user.id == ticket.queue.admin_id %}⭐{% endif %}
                                     </option>
                                     {% for user in ticket.queue.members if user.id != current_user.id %}
                                         <option value="{{ user.id }}" {% if user in ticket.assignees %}selected{% endif %}>
-                                            {{ user.username }}
+                                            {{ user.full_name }}
                                             {% if user.id == ticket.queue.admin_id %}⭐{% endif %}
                                         </option>
                                     {% endfor %}
