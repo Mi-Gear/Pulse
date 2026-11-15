@@ -1,3 +1,12 @@
+# Проверка и установка обновлений выполняется ДО импорта и запуска Flask.
+import os
+import sys
+
+from updater import update_at_startup
+
+if __name__ == "__main__":
+    update_at_startup()
+
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, send_from_directory, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -12,7 +21,6 @@ import time
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError, InterfaceError
 
-from updater import update_checker
 
 
 from core.utils import can_manage_queue
@@ -339,10 +347,6 @@ if __name__ == '__main__':
 
             print('✅ Созданы тестовые очереди')
 
-        # Запускаем автоматическое обновление
-        if update_checker:
-            update_checker.start()
-            print('🔄 Автообновление запущено')
 
     app.run(
         debug=True,

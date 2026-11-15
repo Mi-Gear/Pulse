@@ -1,730 +1,120 @@
-# updater.py
-"""
-Модуль автоматической синхронизации кода с GitHub-репозиторием.
-Использует только стандартную библиотеку Python — без pip install.
+"""Проверка и установка обновлений Pulse перед запуском Flask.
 
-Логика:
-    • Раз в CHECK_INTERVAL секунд делается git fetch в FETCH_HEAD.
-    • Сравнивается содержимое рабочего дерева с FETCH_HEAD.
-    • Если есть расхождения (кроме IGNORE_FILES) — рабочее дерево
-      принудительно приводится к состоянию FETCH_HEAD.
-    • HEAD при этом не двигается (если HARD_RESET=false), но файлы
-      на диске становятся ровно такими, как в репозитории.
-
-Настройка через переменные окружения:
-    GITHUB_REPO      — "owner/repo"          (обязательно)
-    GITHUB_BRANCH    — ветка, по умолчанию "main"
-    GITHUB_TOKEN     — personal access token (обязательно для приватного репо)
-    CHECK_INTERVAL   — интервал в секундах, по умолчанию 60
-    AUTO_UPDATE      — "true"/"false", по умолчанию true
-    HARD_RESET       — "true"/"false", по умолчанию false
-                       (если true — дополнительно git reset --hard FETCH_HEAD)
-    REPO_DIR         — путь к локальному git-репозиторию
-                       (по умолчанию — директория этого файла)
-
-Использование:
-    from updater import update_checker
-    ...
-    if update_checker:
-        update_checker.start()
-    ...
-    update_checker.stop()
+Обновление выполняется только до импорта и запуска приложения. Во время
+работы сервера файлы проекта не изменяются.
 """
 
 import os
-import logging
 import subprocess
-import threading
-from datetime import datetime, timezone
+import sys
+from pathlib import Path
 
-
-# ---------- Конфигурация из окружения ----------
-GITHUB_TOKEN = os.environ.get(
-    "GITHUB_TOKEN",
-    "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",
-)
-
-GITHUB_REPO = os.environ.get(
-    "GITHUB_REPO",
-    "Mi-Gear/Pulse",
-)
-
-GITHUB_BRANCH = os.environ.get(
-    "GITHUB_BRANCH",
-    "main",
-)
-
-
-CHECK_INTERVAL = int(
-    os.environ.get(
-        "CHECK_INTERVAL",
-        "60",
-    )
-)
-
-AUTO_UPDATE = os.environ.get(
-    "AUTO_UPDATE",
-    "true",
-).lower() in (
-    "1",
-    "true",
-    "yes",
-    "on",
-)
-
-HARD_RESET = os.environ.get(
-    "HARD_RESET",
-    "false",
-).lower() in (
-    "1",
-    "true",
-    "yes",
-    "on",
-)
-
-
-# ============================================================
-# Git-репозиторий
-# ============================================================
-
-REPO_DIR = os.environ.get(
-    "REPO_DIR",
-    os.path.dirname(os.path.abspath(__file__)),
-)
-
-
-# ============================================================
-# Файлы, которые updater не должен трогать
-# ============================================================
-
-IGNORE_FILES = {
-    ".env",
-    "config.py",
-    "local_settings.py",
+REPO_DIR = Path(__file__).resolve().parent
+GITHUB_REPO = os.environ.get("GITHUB_REPO", "Mi-Gear/Pulse")
+GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
+AUTO_UPDATE = os.environ.get("AUTO_UPDATE", "true").lower() in {
+    "1", "true", "yes", "on"
 }
+LOCAL_FILES = ("config.py",)
 
 
-# Что сохранять при git clean
-CLEAN_KEEP_PATTERNS = [
-    ".env",
-    "*.log",
-    "__pycache__/",
-    ".venv/",
-    "venv/",
-    "instance/",
-]
-
-
-# ============================================================
-# Логгер
-# ============================================================
-
-update_logger = logging.getLogger(
-    "auto_update"
-)
-
-update_logger.setLevel(
-    logging.INFO
-)
-
-if not update_logger.handlers:
-    _h = logging.StreamHandler()
-
-    _h.setFormatter(
-        logging.Formatter(
-            "[%(asctime)s] [UPDATE] %(levelname)s: %(message)s"
-        )
+def _git(*args, timeout=120):
+    """Запускает git без интерактивных запросов и возвращает результат."""
+    env = os.environ.copy()
+    env["GIT_TERMINAL_PROMPT"] = "0"
+    return subprocess.run(
+        ["git", *args],
+        cwd=REPO_DIR,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        env=env,
     )
 
-    update_logger.addHandler(_h)
 
+def update_at_startup():
+    """Синхронизирует проект с GitHub до запуска приложения.
 
-# ============================================================
-# Updater
-# ============================================================
-
-class GitHubUpdateChecker:
+    Возвращает False, если обновление не требуется или проверка недоступна.
+    При успешном обновлении заменяет текущий процесс новым запуском app.py.
     """
-    Периодически синхронизирует локальный код с GitHub.
-    """
-
-    def __init__(
-        self,
-        repo,
-        branch="main",
-        token=None,
-        interval=60,
-        auto_update=True,
-        hard_reset=False,
-        repo_dir=None,
-    ):
-
-        if not repo:
-            raise ValueError(
-                "GITHUB_REPO не задан"
-            )
-
-        if not token:
-            raise ValueError(
-                "GITHUB_TOKEN обязателен для приватного репозитория"
-            )
-
-        self.repo = repo
-        self.branch = branch
-        self.token = token
-        self.interval = interval
-        self.auto_update = auto_update
-        self.hard_reset = hard_reset
-
-        self.repo_dir = (
-            repo_dir
-            or REPO_DIR
-        )
-
-        self._stop_event = threading.Event()
-
-        self._thread = None
-
-        self._lock = threading.Lock()
-
-        # Диагностическая информация
-
-        self.last_check = None
-
-        self.last_changed_files = []
-
-        self.update_available = False
-
-
-    # ========================================================
-    # Git URL
-    # ========================================================
-
-    def _auth_url(self):
-        return (
-            f"https://x-access-token:"
-            f"{self.token}"
-            f"@github.com/"
-            f"{self.repo}.git"
-        )
-
-
-    # ========================================================
-    # Скрытие токена
-    # ========================================================
-
-    def _redact(self, text):
-
-        if self.token and self.token in text:
-            return text.replace(
-                self.token,
-                "***",
-            )
-
-        return text
-
-
-    # ========================================================
-    # Fetch основной ветки
-    # ========================================================
-
-    def _fetch(self):
-
-        try:
-
-            r = subprocess.run(
-                [
-                    "git",
-                    "fetch",
-                    "--prune",
-                    self._auth_url(),
-                    self.branch,
-                ],
-                cwd=self.repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=120,
-                env={
-                    **os.environ,
-                    "GIT_TERMINAL_PROMPT": "0",
-                },
-            )
-
-            if r.returncode == 0:
-                return True
-
-            update_logger.error(
-                "git fetch ошибка (rc=%s):\n"
-                "STDOUT: %s\n"
-                "STDERR: %s",
-                r.returncode,
-                r.stdout.strip(),
-                self._redact(
-                    r.stderr.strip()
-                ),
-            )
-
-        except (
-            subprocess.SubprocessError,
-            FileNotFoundError,
-        ) as e:
-
-            update_logger.error(
-                "git fetch исключение: %s",
-                e,
-            )
-
+    if not AUTO_UPDATE:
+        print("[UPDATE] Автообновление отключено (AUTO_UPDATE=false).")
         return False
 
-
-    # ========================================================
-    # Список изменившихся файлов
-    # ========================================================
-
-    def _get_changed_files(self):
-
-        try:
-
-            r = subprocess.run(
-                [
-                    "git",
-                    "diff",
-                    "--name-only",
-                    "FETCH_HEAD",
-                ],
-                cwd=self.repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=30,
-            )
-
-            if r.returncode != 0:
-
-                update_logger.error(
-                    "git diff ошибка (rc=%s): %s",
-                    r.returncode,
-                    self._redact(
-                        r.stderr.strip()
-                    ),
-                )
-
-                return None
-
-            changed = [
-                f.strip()
-                for f in r.stdout.splitlines()
-                if (
-                    f.strip()
-                    and f.strip()
-                    not in IGNORE_FILES
-                )
-            ]
-
-            return changed
-
-        except (
-            subprocess.SubprocessError,
-            FileNotFoundError,
-        ) as e:
-
-            update_logger.error(
-                "git diff исключение: %s",
-                e,
-            )
-
-            return None
-
-
-    # ========================================================
-    # Синхронизация кода
-    # ========================================================
-
-    def _sync_from_fetch_head(self):
-
-        try:
-
-            # ----------------------------------------------
-            # Восстанавливаем отслеживаемые файлы
-            # ----------------------------------------------
-
-            r = subprocess.run(
-                [
-                    "git",
-                    "restore",
-                    "--source=FETCH_HEAD",
-                    "--worktree",
-                    "--staged",
-                    "--",
-                    ".",
-                ],
-                cwd=self.repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=120,
-                env={
-                    **os.environ,
-                    "GIT_TERMINAL_PROMPT": "0",
-                },
-            )
-
-            if r.returncode != 0:
-
-                update_logger.error(
-                    "git restore ошибка (rc=%s):\n"
-                    "STDOUT: %s\n"
-                    "STDERR: %s",
-                    r.returncode,
-                    r.stdout.strip(),
-                    self._redact(
-                        r.stderr.strip()
-                    ),
-                )
-
-                return False
-
-
-            if r.stdout.strip():
-
-                update_logger.info(
-                    "git restore:\n%s",
-                    r.stdout.strip(),
-                )
-
-
-            # ----------------------------------------------
-            # Удаляем ненужные untracked-файлы
-            # ----------------------------------------------
-
-            clean_cmd = [
-                "git",
-                "clean",
-                "-fd",
-            ]
-
-            for pattern in CLEAN_KEEP_PATTERNS:
-
-                clean_cmd += [
-                    "-e",
-                    pattern,
-                ]
-
-
-            r2 = subprocess.run(
-                clean_cmd,
-                cwd=self.repo_dir,
-                capture_output=True,
-                text=True,
-                timeout=60,
-                env={
-                    **os.environ,
-                    "GIT_TERMINAL_PROMPT": "0",
-                },
-            )
-
-            if (
-                r2.returncode == 0
-                and r2.stdout.strip()
-            ):
-
-                update_logger.info(
-                    "git clean -fd:\n%s",
-                    r2.stdout.strip(),
-                )
-
-
-            # ----------------------------------------------
-            # Опциональный hard reset
-            # ----------------------------------------------
-
-            if self.hard_reset:
-
-                r3 = subprocess.run(
-                    [
-                        "git",
-                        "reset",
-                        "--hard",
-                        "FETCH_HEAD",
-                    ],
-                    cwd=self.repo_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=60,
-                    env={
-                        **os.environ,
-                        "GIT_TERMINAL_PROMPT": "0",
-                    },
-                )
-
-                if r3.returncode != 0:
-
-                    update_logger.error(
-                        "git reset --hard ошибка "
-                        "(rc=%s): %s",
-                        r3.returncode,
-                        self._redact(
-                            r3.stderr.strip()
-                        ),
-                    )
-
-                    return False
-
-                update_logger.info(
-                    "git reset --hard FETCH_HEAD: %s",
-                    r3.stdout.strip(),
-                )
-
-
-            return True
-
-
-        except (
-            subprocess.SubprocessError,
-            FileNotFoundError,
-        ) as e:
-
-            update_logger.error(
-                "git sync исключение: %s",
-                e,
-            )
-
+    try:
+        check = _git("rev-parse", "--is-inside-work-tree", timeout=10)
+        if check.returncode != 0 or check.stdout.strip() != "true":
+            print("[UPDATE] Git-репозиторий не найден. Запускаю текущую версию.")
             return False
 
+        remote_url = f"https://github.com/{GITHUB_REPO}.git"
+        print(f"[UPDATE] Проверяю {GITHUB_REPO}@{GITHUB_BRANCH}...")
 
-    # ========================================================
-    # Одна проверка
-    # ========================================================
-
-    def check_once(self):
-
-        with self._lock:
-
-            self.last_check = (
-                datetime.now(timezone.utc)
+        fetch = _git(
+            "fetch", "--no-tags", remote_url, GITHUB_BRANCH, timeout=180
+        )
+        if fetch.returncode != 0:
+            print(
+                "[UPDATE] Не удалось проверить GitHub; "
+                "запускаю установленную версию.\n"
+                + fetch.stderr.strip()
             )
+            return False
 
+        local_head = _git("rev-parse", "HEAD", timeout=10)
+        remote_head = _git("rev-parse", "FETCH_HEAD", timeout=10)
+        if local_head.returncode != 0 or remote_head.returncode != 0:
+            print("[UPDATE] Не удалось определить версии. Запускаю текущую.")
+            return False
 
-            # ------------------------------------------------
-            # 1. Получаем main
-            # ------------------------------------------------
+        local_sha = local_head.stdout.strip()
+        remote_sha = remote_head.stdout.strip()
+        if local_sha == remote_sha:
+            print("[UPDATE] Установлена актуальная версия.")
+            return False
 
-            if not self._fetch():
-
-                update_logger.warning(
-                    "Не удалось получить "
-                    "свежие данные с GitHub."
-                )
-
-                return False
-
-
-            # ------------------------------------------------
-            # 2. Проверяем код
-            # ------------------------------------------------
-
-            changed = (
-                self._get_changed_files()
-            )
-
-            if changed is None:
-
-                return False
-
-
-            self.last_changed_files = (
-                changed
-            )
-
-
-            # ------------------------------------------------
-            # Если код изменился
-            # ------------------------------------------------
-
-            if changed:
-
-                self.update_available = True
-
-                update_logger.warning(
-                    "Обнаружено расхождение. "
-                    "Файлов: %d — %s",
-                    len(changed),
-                    ", ".join(changed),
-                )
-
-
-                # --------------------------------------------
-                # AUTO_UPDATE=false
-                # --------------------------------------------
-
-                if not self.auto_update:
-
-                    update_logger.info(
-                        "AUTO_UPDATE=false — "
-                        "синхронизация не выполняется."
-                    )
-
-                else:
-
-                    # ----------------------------------------
-                    # Обновляем только код из main
-                    # ----------------------------------------
-
-                    if self._sync_from_fetch_head():
-
-                        still = (
-                            self._get_changed_files()
-                        )
-
-                        if still:
-
-                            update_logger.error(
-                                "После синхронизации "
-                                "остались расхождения: %s",
-                                ", ".join(still),
-                            )
-
-                            return False
-
-
-                        self.update_available = False
-
-                        update_logger.info(
-                            "Код синхронизирован "
-                            "с GitHub (%s@%s).",
-                            self.repo,
-                            self.branch,
-                        )
-
-                    else:
-
-                        update_logger.error(
-                            "Не удалось синхронизировать "
-                            "рабочее дерево с FETCH_HEAD."
-                        )
-
-                        return False
-
-            else:
-
-                self.update_available = False
-
-                update_logger.info(
-                    "Обновлений кода нет."
-                )
-
-
-            return bool(changed)
-
-
-    # ========================================================
-    # Цикл проверки
-    # ========================================================
-
-    def _run(self):
-
-        update_logger.info(
-            "Сервис обновлений запущен: "
-            "repo=%s branch=%s "
-            "interval=%ss "
-            "auto=%s "
-            "hard_reset=%s "
-            "repo_dir=%s",
-            self.repo,
-            self.branch,
-            self.interval,
-            self.auto_update,
-            self.hard_reset,
-            self.repo_dir,
+        print(
+            f"[UPDATE] Найдено обновление: "
+            f"{local_sha[:8]} -> {remote_sha[:8]}. Устанавливаю..."
         )
 
+        # Локальный config.py содержит настройки конкретного компьютера.
+        # run_settings.txt и другие ignored/untracked файлы git reset не удаляет.
+        backups = {}
+        for filename in LOCAL_FILES:
+            path = REPO_DIR / filename
+            if path.is_file():
+                backups[filename] = (path.read_bytes(), path.stat().st_mode)
 
-        while not self._stop_event.is_set():
+        reset = _git("reset", "--hard", "FETCH_HEAD", timeout=180)
+        if reset.returncode != 0:
+            print(
+                "[UPDATE] Ошибка установки обновления. "
+                "Приложение не будет запущено, чтобы не работать "
+                "на частично обновлённом коде.\n"
+                + reset.stderr.strip()
+            )
+            raise SystemExit(1)
 
+        for filename, (content, mode) in backups.items():
+            path = REPO_DIR / filename
+            path.write_bytes(content)
             try:
+                path.chmod(mode)
+            except OSError:
+                pass
 
-                self.check_once()
+        print("[UPDATE] Обновление установлено. Перезапускаю Pulse...")
 
-            except Exception:
+        # Новый процесс перечитает app.py и все модули уже с диска.
+        os.execv(sys.executable, [sys.executable, *sys.argv])
 
-                update_logger.exception(
-                    "Ошибка в цикле проверки"
-                )
+    except FileNotFoundError:
+        print("[UPDATE] Git не установлен. Запускаю текущую версию.")
+    except subprocess.TimeoutExpired:
+        print("[UPDATE] Истекло время ожидания GitHub/Git. Запускаю текущую версию.")
+    except OSError as exc:
+        print(f"[UPDATE] Ошибка обновления: {exc}. Запускаю текущую версию.")
 
-
-            self._stop_event.wait(
-                self.interval
-            )
-
-
-        update_logger.info(
-            "Сервис обновлений остановлен."
-        )
-
-
-    # ========================================================
-    # Запуск
-    # ========================================================
-
-    def start(self):
-
-        if (
-            self._thread
-            and self._thread.is_alive()
-        ):
-
-            return
-
-
-        self._stop_event.clear()
-
-
-        self._thread = threading.Thread(
-            target=self._run,
-            name="GitHubUpdateChecker",
-            daemon=True,
-        )
-
-
-        self._thread.start()
-
-
-    # ========================================================
-    # Остановка
-    # ========================================================
-
-    def stop(self):
-
-        self._stop_event.set()
-
-
-        if self._thread:
-
-            self._thread.join(
-                timeout=5
-            )
-
-
-# ============================================================
-# Готовый экземпляр
-# ============================================================
-
-update_checker = None
-
-
-if GITHUB_REPO and GITHUB_TOKEN:
-
-    update_checker = GitHubUpdateChecker(
-        repo=GITHUB_REPO,
-        branch=GITHUB_BRANCH,
-        token=GITHUB_TOKEN,
-        interval=CHECK_INTERVAL,
-        auto_update=AUTO_UPDATE,
-        hard_reset=HARD_RESET,
-        repo_dir=REPO_DIR,
-    )
-
-else:
-
-    update_logger.warning(
-        "Сервис обновлений не запущен: "
-        "задайте GITHUB_REPO и GITHUB_TOKEN."
-    )
+    return False
