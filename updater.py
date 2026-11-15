@@ -6,7 +6,6 @@
 новый процесс с актуальным кодом.
 """
 
-import base64
 import os
 import signal
 import shutil
@@ -95,18 +94,14 @@ def _git(*args, timeout=120):
             "Git не найден. Установите Git for Windows или добавьте git.exe в PATH."
         )
 
-    # Пустое значение сбрасывает credential.helper из системной конфигурации.
-    command = [GIT_EXECUTABLE, "-c", "credential.helper="]
-    if GITHUB_TOKEN:
-        # Токен передаётся Git через временную конфигурацию процесса,
-        # а не в URL, чтобы не попадать в список аргументов процесса.
-        auth = base64.b64encode(
-            f"x-access-token:{GITHUB_TOKEN}".encode()
-        ).decode()
-        command += [
-            "-c",
-            f"http.https://github.com/.extraheader=AUTHORIZATION: basic {auth}",
-        ]
+    # Репозиторий Pulse публичный: для git fetch токен не нужен.
+    # Не передаём потенциально просроченный PAT, иначе GitHub отвечает 401
+    # и Git пытается запросить логин через credential helper.
+    command = [
+        GIT_EXECUTABLE,
+        "-c", "credential.helper=",
+        "-c", "credential.interactive=never",
+    ]
     return subprocess.run(
         command + list(args),
         cwd=REPO_DIR,
