@@ -15,6 +15,39 @@ import threading
 from pathlib import Path
 
 REPO_DIR = Path(__file__).resolve().parent
+
+
+def _load_env_file():
+    """Загружает локальный .env без сторонних зависимостей.
+
+    Переменные окружения, заданные системой, имеют приоритет над .env.
+    """
+    env_path = REPO_DIR / ".env"
+    if not env_path.is_file():
+        return
+
+    for raw_line in env_path.read_text(encoding="utf-8-sig").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].strip()
+        if "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip()
+        if not key or key in os.environ:
+            continue
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+            value = value[1:-1]
+        elif " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
+        os.environ[key] = value
+
+
+_load_env_file()
 APP_FILE = REPO_DIR / "app.py"
 GITHUB_REPO = os.environ.get("GITHUB_REPO", "Mi-Gear/Pulse")
 GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
@@ -22,7 +55,7 @@ CHECK_INTERVAL = max(10, int(os.environ.get("CHECK_INTERVAL", "60")))
 AUTO_UPDATE = os.environ.get("AUTO_UPDATE", "true").lower() in {
     "1", "true", "yes", "on"
 }
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip() or None
 LOCAL_FILES = ("config.py",)
 STOP_EVENT = threading.Event()
 
