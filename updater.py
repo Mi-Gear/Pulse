@@ -9,6 +9,7 @@
 import base64
 import os
 import signal
+import shutil
 import subprocess
 import sys
 import threading
@@ -56,6 +57,27 @@ AUTO_UPDATE = os.environ.get("AUTO_UPDATE", "true").lower() in {
     "1", "true", "yes", "on"
 }
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "").strip() or None
+
+
+def _find_git_executable():
+    """Находит Git даже если он установлен, но не добавлен в PATH."""
+    git = shutil.which("git")
+    if git:
+        return git
+
+    candidates = [
+        Path(os.environ.get("ProgramFiles", r"C:\\Program Files")) / "Git" / "cmd" / "git.exe",
+        Path(os.environ.get("ProgramFiles", r"C:\\Program Files")) / "Git" / "bin" / "git.exe",
+        Path(os.environ.get("ProgramFiles(x86)", r"C:\\Program Files (x86)")) / "Git" / "cmd" / "git.exe",
+        Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Git" / "cmd" / "git.exe",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    return None
+
+
+GIT_EXECUTABLE = _find_git_executable()
 LOCAL_FILES = ("config.py",)
 STOP_EVENT = threading.Event()
 
@@ -63,7 +85,12 @@ STOP_EVENT = threading.Event()
 def _git(*args, timeout=120):
     env = os.environ.copy()
     env["GIT_TERMINAL_PROMPT"] = "0"
-    command = ["git"]
+    if not GIT_EXECUTABLE:
+        raise FileNotFoundError(
+            "Git не найден. Установите Git for Windows или добавьте git.exe в PATH."
+        )
+
+    command = [GIT_EXECUTABLE]
     if GITHUB_TOKEN:
         # Токен передаётся Git через временную конфигурацию процесса,
         # а не в URL, чтобы не попадать в список аргументов процесса.
