@@ -30,13 +30,6 @@
                         <label class="form-label-modern">Почта</label>
                         <input type="text" class="form-control-modern" name="name" value="{{ queue.mail if queue else '' }}">
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label-modern">Тип очереди</label>
-                        <select class="form-select-modern" name="queue_type">
-                            <option value="default" {% if queue and queue.queue_type == 'default' %}selected{% endif %}>Обычная</option>
-                            <option value="booking" {% if queue and queue.queue_type == 'booking' %}selected{% endif %}>Бронирование автомобилей</option>
-                        </select>
-                    </div>
 
                     <!-- ===== ДОСТУПНЫЕ ОЧЕРЕДИ ДЛЯ ОТПРАВКИ ЗАЯВОК ===== -->
                     <div class="mb-3">

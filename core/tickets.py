@@ -10,8 +10,6 @@ from models import (
     Comment,
     Queue,
     Attachment,
-    Car,
-    Booking,
     MetrologistRequest,
     Equipment,
     queue_links,

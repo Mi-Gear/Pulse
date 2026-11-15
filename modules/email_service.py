@@ -144,20 +144,6 @@ def send_status_change_notification(ticket, user, old_status, new_status):
     return add_to_mail_list(user.email, subject, body)
 
 
-def send_booking_notification(car, user, start, end, purpose):
-    """Уведомление о бронировании автомобиля"""
-    subject = f'🚗 Автомобиль {car.full_name} забронирован'
-    body = f'''Вы успешно забронировали автомобиль!
-
-Автомобиль: {car.brand} {car.model} ({car.license_plate})
-Дата начала: {start.strftime('%d.%m.%Y %H:%M')}
-Дата окончания: {end.strftime('%d.%m.%Y %H:%M')}
-Цель: {purpose or 'Не указана'}
-Очередь: {car.queue.name}
-
-Ссылка: http://127.0.0.1:5000/queue/{car.queue_id}/cars'''
-    return add_to_mail_list(user.email, subject, body)
-
 app.add_callback("after_create_ticket",send_new_ticket_notification)
 app.add_callback("after_assign_ticket",send_assigned_notification)
 

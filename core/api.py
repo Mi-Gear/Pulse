@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_
-from models import db, User, Ticket, Queue, Car, Booking
+from models import db, User, Ticket, Queue
 import requests
 
 

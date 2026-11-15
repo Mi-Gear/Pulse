@@ -20,11 +20,6 @@
         <span class="badge-status {% if queue.is_active %}badge-status-new{% else %}badge-status-other{% endif %}">
             {{ 'Активна' if queue.is_active else 'Неактивна' }}
         </span>
-        {% if queue.queue_type == 'booking' %}
-            <a href="{{ url_for('queue_cars', queue_id=queue.id) }}" class="btn btn-primary-gradient btn-sm ms-2">
-                <i class="fas fa-car me-1"></i> Автомобили
-            </a>
-        {% endif %}
     </div>
 </div>
 
@@ -216,16 +211,6 @@
                     <div class="queue-info-item">
                         <span class="queue-info-label">Описание</span>
                         <span class="queue-info-value">{{ queue.description or '—' }}</span>
-                    </div>
-                    <div class="queue-info-item">
-                        <span class="queue-info-label">Тип</span>
-                        <span class="queue-info-value">
-                            {% if queue.queue_type == 'booking' %}
-                                <span class="badge-status badge-status-new">🚗 Бронирование</span>
-                            {% else %}
-                                <span class="badge-status badge-status-other">📋 Обычная</span>
-                            {% endif %}
-                        </span>
                     </div>
                     <div class="queue-info-item">
                         <span class="queue-info-label">Статус</span>

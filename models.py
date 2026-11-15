@@ -35,8 +35,6 @@ class User(UserMixin, db.Model):
     
     # Заявки созданные пользователем
     created_tickets = db.relationship('Ticket', foreign_keys='Ticket.created_by_id', backref='creator')
-    # Бронирования пользователя
-    bookings = db.relationship('Booking', backref='user', lazy=True)
     
 
     @property
@@ -61,7 +59,6 @@ class Queue(db.Model):
     name = db.Column(db.String(100), nullable=False, unique=True)
     description = db.Column(db.Text, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
-    queue_type = db.Column(db.String(50), default='default')
     created_at = db.Column(db.DateTime, default=datetime.now(tz))
     created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     mail = db.Column(db.Text,default = None)
@@ -84,8 +81,6 @@ class Queue(db.Model):
     # Заявки в очереди
     tickets = db.relationship('Ticket', backref='queue', lazy=True)
     
-    # Автомобили в очереди (для бронирования)
-    cars = db.relationship('Car', backref='queue', lazy=True)
     
     created_by = db.relationship('User', foreign_keys=[created_by_id])
 
@@ -287,59 +282,3 @@ class Attachment(db.Model):
 
     def __repr__(self):
         return f'<Attachment {self.filename}>'
-
-
-# === Автомобили ===
-class Car(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    brand = db.Column(db.String(100), nullable=False)
-    model = db.Column(db.String(100), nullable=False)
-    license_plate = db.Column(db.String(20), nullable=False, unique=True)
-    year = db.Column(db.Integer, nullable=True)
-    color = db.Column(db.String(50), nullable=True)
-    # is_available УДАЛЕНО — определяется динамически
-    description = db.Column(db.Text, nullable=True)
-    
-    queue_id = db.Column(db.Integer, db.ForeignKey('queue.id'), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.now(tz))
-    created_by_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    
-    created_by = db.relationship('User', foreign_keys=[created_by_id])
-    bookings = db.relationship('Booking', backref='car', lazy=True)
-
-    @property
-    def full_name(self):
-        return f"{self.brand} {self.model} ({self.license_plate})"
-    
-    def is_available(self, start_date, end_date):
-        """Проверяет, свободна ли машина в указанный промежуток"""
-        # Ищем активные бронирования, пересекающиеся с указанным периодом
-        conflict = Booking.query.filter(
-            Booking.car_id == self.id,
-            Booking.status == 'active',
-            Booking.start_date < end_date,
-            Booking.end_date > start_date
-        ).first()
-        return conflict is None
-
-    def __repr__(self):
-        return f'<Car {self.full_name}>'
-
-
-# === Бронирования ===
-class Booking(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    car_id = db.Column(db.Integer, db.ForeignKey('car.id'), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    
-    start_date = db.Column(db.String(50), nullable=False)
-    end_date = db.Column(db.String(50), nullable=False)
-    purpose = db.Column(db.Text, nullable=True)
-    
-    status = db.Column(db.String(50), default='active')
-    created_at = db.Column(db.DateTime, default=datetime.now(tz))
-    updated_at = db.Column(db.DateTime, default=datetime.now(tz), onupdate=datetime.now(tz))
-
-    def __repr__(self):
-        return f'<Booking {self.car.full_name} by {self.user.username}>'
-

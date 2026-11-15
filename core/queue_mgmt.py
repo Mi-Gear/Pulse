@@ -16,7 +16,6 @@ def admin_queue_create():
     if request.method == 'POST':        
         name = request.form.get('name')
         description = request.form.get('description')
-        queue_type = request.form.get('queue_type', 'default')
         admin_ids = request.form.getlist('admin_ids')
         allowed_queue_ids = request.form.getlist('allowed_queue_ids')
         
@@ -28,7 +27,6 @@ def admin_queue_create():
         queue = Queue(
             name=name,
             description=description,
-            queue_type=queue_type,
             created_by_id=current_user.id
         )
         db.session.add(queue)
@@ -65,7 +63,6 @@ def admin_queue_edit(queue_id):
         name = request.form.get('name')
         description = request.form.get('description')
         is_active = request.form.get('is_active') == 'on'
-        queue_type = request.form.get('queue_type', 'default')
         admin_ids = request.form.getlist('admin_ids')
         allowed_queue_ids = request.form.getlist('allowed_queue_ids')
         
@@ -78,7 +75,6 @@ def admin_queue_edit(queue_id):
         queue.name = name
         queue.description = description
         queue.is_active = is_active
-        queue.queue_type = queue_type
 
         queue.allowed_destinations = [
             target for target in Queue.query.filter(

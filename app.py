@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-from models import db, User, Ticket, Comment, Queue, Attachment, Car, Booking
+from models import db, User, Ticket, Comment, Queue, Attachment
 from datetime import datetime, timedelta
 from sqlalchemy import or_
 import traceback, json
