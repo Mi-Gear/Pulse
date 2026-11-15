@@ -179,9 +179,18 @@ def run_supervisor():
                 )
                 return
 
-            print("[UPDATE] Запускаю Pulse с новой версией...", flush=True)
-            worker = _start_worker()
-            continue
+            print(
+                "[UPDATE] Перезапускаю контроллер, чтобы он тоже "
+                "загрузил новую версию updater.py...",
+                flush=True,
+            )
+            env = os.environ.copy()
+            env.pop("PULSE_WORKER", None)
+            os.execve(
+                sys.executable,
+                [sys.executable, str(APP_FILE)],
+                env,
+            )
 
         # Если дочерний сервер аварийно завершился, поднимаем его снова.
         if worker.poll() is not None:
