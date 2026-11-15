@@ -84,13 +84,19 @@ STOP_EVENT = threading.Event()
 
 def _git(*args, timeout=120):
     env = os.environ.copy()
+    # Не позволяем Git Credential Manager открывать браузер или диалог входа.
+    # Авторизация автообновления выполняется только через GITHUB_TOKEN из .env.
     env["GIT_TERMINAL_PROMPT"] = "0"
+    env["GCM_INTERACTIVE"] = "never"
+    env["GIT_ASKPASS"] = ""
+    env["SSH_ASKPASS"] = ""
     if not GIT_EXECUTABLE:
         raise FileNotFoundError(
             "Git не найден. Установите Git for Windows или добавьте git.exe в PATH."
         )
 
-    command = [GIT_EXECUTABLE]
+    # Пустое значение сбрасывает credential.helper из системной конфигурации.
+    command = [GIT_EXECUTABLE, "-c", "credential.helper="]
     if GITHUB_TOKEN:
         # Токен передаётся Git через временную конфигурацию процесса,
         # а не в URL, чтобы не попадать в список аргументов процесса.
