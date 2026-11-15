@@ -1,11 +1,13 @@
-# Проверка и установка обновлений выполняется ДО импорта и запуска Flask.
+# Внешний процесс-контроллер следит за GitHub, пока дочерний процесс
+# обслуживает запросы. При обновлении контроллер останавливает сервер,
+# синхронизирует файлы и запускает новый процесс.
 import os
 import sys
 
-from updater import update_at_startup
-
-if __name__ == "__main__":
-    update_at_startup()
+if __name__ == "__main__" and os.environ.get("PULSE_WORKER") != "1":
+    from updater import run_supervisor
+    run_supervisor()
+    raise SystemExit(0)
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, send_from_directory, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
