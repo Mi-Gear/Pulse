@@ -66,9 +66,9 @@ def _find_git_executable():
         return git
 
     candidates = [
-        Path(os.environ.get("ProgramFiles", r"C:\\Program Files")) / "Git" / "cmd" / "git.exe",
-        Path(os.environ.get("ProgramFiles", r"C:\\Program Files")) / "Git" / "bin" / "git.exe",
-        Path(os.environ.get("ProgramFiles(x86)", r"C:\\Program Files (x86)")) / "Git" / "cmd" / "git.exe",
+        Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git" / "cmd" / "git.exe",
+        Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git" / "bin" / "git.exe",
+        Path(os.environ.get("ProgramFiles(x86)", "C:/Program Files (x86)")) / "Git" / "cmd" / "git.exe",
         Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Git" / "cmd" / "git.exe",
     ]
     for candidate in candidates:
