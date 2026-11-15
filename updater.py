@@ -6,6 +6,7 @@
 новый процесс с актуальным кодом.
 """
 
+import base64
 import os
 import signal
 import shutil
@@ -38,7 +39,10 @@ def _load_env_file():
         key, value = line.split("=", 1)
         key = key.strip()
         value = value.strip()
-        if not key or key in os.environ:
+        if not key:
+            continue
+        # Пустая системная переменная не должна блокировать значение из .env.
+        if os.environ.get(key, "").strip():
             continue
         if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
             value = value[1:-1]
@@ -94,13 +98,24 @@ def _git(*args, timeout=120):
             "Git не найден. Установите Git for Windows или добавьте git.exe в PATH."
         )
 
-    # Репозиторий Pulse публичный: для git fetch токен не нужен.
-    # Не передаём потенциально просроченный PAT, иначе GitHub отвечает 401
-    # и Git пытается запросить логин через credential helper.
+    # Репозиторий приватный: авторизуем fetch токеном из .env.
+    # Отключаем credential helper, чтобы Git не открывал браузерный вход.
     command = [
         GIT_EXECUTABLE,
         "-c", "credential.helper=",
         "-c", "credential.interactive=never",
+    ]
+    if not GITHUB_TOKEN:
+        raise RuntimeError(
+            "Не задан GITHUB_TOKEN. Проверьте .env в корне Pulse."
+        )
+
+    auth = base64.b64encode(
+        f"x-access-token:{GITHUB_TOKEN}".encode("utf-8")
+    ).decode("ascii")
+    command += [
+        "-c",
+        f"http.https://github.com/.extraheader=AUTHORIZATION: basic {auth}",
     ]
     return subprocess.run(
         command + list(args),
