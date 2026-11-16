@@ -50,6 +50,9 @@
                             <th>Период обслуживания</th>
                             <th>Сертификат</th>
                             <th>Регистрационное удостоверение</th>
+                            {% if current_user.role == 0 or current_user in queue.admins %}
+                                <th class="text-end">Действия</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -64,7 +67,76 @@
                                 <td>{{ item.maintenance_period or '—' }}</td>
                                 <td>{{ item.certificate or '—' }}</td>
                                 <td>{{ item.registration_certificate or '—' }}</td>
+                                {% if current_user.role == 0 or current_user in queue.admins %}
+                                    <td class="text-end">
+                                        <button class="btn btn-outline-modern btn-sm" type="button"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target="#equipment-edit-{{ item.id }}"
+                                                aria-expanded="false"
+                                                aria-controls="equipment-edit-{{ item.id }}">
+                                            <i class="fas fa-pen me-1"></i> Изменить
+                                        </button>
+                                    </td>
+                                {% endif %}
                             </tr>
+                            {% if current_user.role == 0 or current_user in queue.admins %}
+                                <tr class="collapse" id="equipment-edit-{{ item.id }}">
+                                    <td colspan="10">
+                                        <form method="post"
+                                              action="{{ url_for('queue_detail.edit_queue_equipment', queue_id=queue.id, equipment_id=item.id) }}"
+                                              class="p-3 rounded" style="background: var(--gray-100, #f8f9fa);">
+                                            <div class="row g-3">
+                                                <div class="col-md-6">
+                                                    <label class="form-label small">Наименование</label>
+                                                    <input class="form-control" name="equipment_name" value="{{ item.equipment_name or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small">Модель</label>
+                                                    <input class="form-control" name="model" value="{{ item.model or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small">Заводской номер</label>
+                                                    <input class="form-control" name="serial_number" value="{{ item.serial_number or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small">Инвентарный номер</label>
+                                                    <input class="form-control" name="inventory_number" value="{{ item.inventory_number or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small">Год выпуска</label>
+                                                    <input class="form-control" name="production_year" value="{{ item.production_year or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small">Год ввода в эксплуатацию</label>
+                                                    <input class="form-control" name="commissioning_year" value="{{ item.commissioning_year or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small">Период обслуживания</label>
+                                                    <input class="form-control" name="maintenance_period" value="{{ item.maintenance_period or '' }}">
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label class="form-label small">Сертификат</label>
+                                                    <input class="form-control" name="certificate" value="{{ item.certificate or '' }}">
+                                                </div>
+                                                <div class="col-md-12">
+                                                    <label class="form-label small">Регистрационное удостоверение</label>
+                                                    <input class="form-control" name="registration_certificate" value="{{ item.registration_certificate or '' }}">
+                                                </div>
+                                            </div>
+                                            <div class="d-flex justify-content-end gap-2 mt-3">
+                                                <button type="button" class="btn btn-outline-modern btn-sm"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#equipment-edit-{{ item.id }}">
+                                                    Отмена
+                                                </button>
+                                                <button type="submit" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-save me-1"></i> Сохранить
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
