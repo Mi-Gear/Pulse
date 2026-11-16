@@ -1,298 +1,263 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
-    <div>
-        <div class="text-muted small mb-1">
-            <a href="{{ url_for('my_queues.my_queues') }}" class="text-decoration-none">Мои очереди</a>
-            <span class="mx-1">/</span>
-            {{ queue.name }}
+<div class="equipment-page">
+    <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-4">
+        <div>
+            <div class="equipment-breadcrumb mb-2">
+                <a href="{{ url_for('my_queues.my_queues') }}">Мои очереди</a>
+                <i class="fas fa-chevron-right"></i>
+                <span>{{ queue.name }}</span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="equipment-heading-icon"><i class="fas fa-laptop-medical"></i></div>
+                <div>
+                    <h4 class="mb-1 fw-bold">Оборудование</h4>
+                    <div class="text-muted small">Реестр оборудования очереди</div>
+                </div>
+                <span class="equipment-count">{{ equipment|length }}</span>
+            </div>
         </div>
-        <h4 class="mb-1 fw-semibold">
-            <i class="fas fa-laptop-medical me-2" style="color: var(--primary);"></i>
-            Оборудование
-        </h4>
-        <span class="text-muted small">{{ queue.name }} · {{ equipment|length }} записей</span>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ url_for('queue_detail.download_equipment_template', queue_id=queue.id) }}" class="btn btn-light equipment-toolbar-btn">
+                <i class="fas fa-download me-2"></i>Шаблон Excel
+            </a>
+            {% if current_user.role == 0 or current_user in queue.admins %}
+                <form id="equipment-import-form" method="post" action="{{ url_for('queue_detail.import_queue_equipment', queue_id=queue.id) }}" enctype="multipart/form-data">
+                    <input id="equipment-import-file" type="file" name="file" accept=".xlsx" required hidden
+                           onchange="if (this.files.length) this.form.submit();">
+                    <button type="button" class="btn btn-primary equipment-import-btn"
+                            onclick="document.getElementById('equipment-import-file').click();">
+                        <i class="fas fa-file-import me-2"></i>Импортировать
+                    </button>
+                </form>
+            {% endif %}
+            <a href="{{ url_for('queue_detail.queue_detail', queue_id=queue.id) }}" class="btn btn-light equipment-toolbar-btn">
+                <i class="fas fa-arrow-left me-2"></i>К очереди
+            </a>
+        </div>
     </div>
-    <div class="d-flex flex-wrap gap-2">
-        <a href="{{ url_for('queue_detail.download_equipment_template', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
-            <i class="fas fa-file-download me-1"></i> Скачать шаблон импорта
-        </a>
-        {% if current_user.role == 0 or current_user in queue.admins %}
-            <form id="equipment-import-form" method="post" action="{{ url_for('queue_detail.import_queue_equipment', queue_id=queue.id) }}" enctype="multipart/form-data">
-                <input id="equipment-import-file" type="file" name="file" accept=".xlsx" required hidden
-                       onchange="if (this.files.length) this.form.submit();">
-                <button type="button" class="btn btn-primary btn-sm"
-                        onclick="document.getElementById('equipment-import-file').click();">
-                    <i class="fas fa-file-import me-1"></i> Импортировать
-                </button>
-            </form>
-        {% endif %}
-        <a href="{{ url_for('queue_detail.queue_detail', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
-            <i class="fas fa-arrow-left me-1"></i> К очереди
-        </a>
-    </div>
-</div>
 
-
-<style>
-    .equipment-card {
-        overflow: hidden;
-        border: 1px solid var(--gray-200, #e5e7eb);
-        border-radius: 14px;
-        box-shadow: 0 4px 18px rgba(15, 23, 42, .045);
-    }
-    .equipment-table-wrap {
-        max-height: calc(100vh - 280px);
-        min-height: 220px;
-    }
-    .equipment-table {
-        min-width: 1320px;
-        color: var(--gray-700, #374151);
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: .875rem;
-    }
-    .equipment-table thead th {
-        position: sticky;
-        top: 0;
-        z-index: 2;
-        padding: 15px 14px;
-        background: #f7faf9;
-        color: #64748b;
-        border-bottom: 1px solid #e5eae8;
-        font-size: .72rem;
-        font-weight: 700;
-        letter-spacing: .045em;
-        line-height: 1.35;
-        text-transform: uppercase;
-        white-space: nowrap;
-    }
-    .equipment-table tbody td {
-        padding: 14px;
-        border-bottom: 1px solid #edf1ef;
-        vertical-align: middle;
-        line-height: 1.45;
-        background: #fff;
-        transition: background-color .15s ease;
-    }
-    .equipment-table tbody tr:nth-child(even) td {
-        background: #fbfcfc;
-    }
-    .equipment-table tbody tr.equipment-row:hover td {
-        background: #f1faf6;
-    }
-    .equipment-table tbody tr:last-child td {
-        border-bottom: 0;
-    }
-    .equipment-table .equipment-name-col {
-        min-width: 230px;
-    }
-    .equipment-table .equipment-actions-col {
-        min-width: 190px;
-        padding-right: 18px;
-    }
-    .equipment-table .equipment-row td:first-child {
-        color: #1f2937;
-        font-weight: 600;
-    }
-    .equipment-number {
-        display: inline-block;
-        padding: 4px 8px;
-        border: 1px solid #e8eeeb;
-        border-radius: 6px;
-        background: #f8faf9;
-        color: #475569;
-        font-size: .82rem;
-        white-space: nowrap;
-    }
-    .equipment-year {
-        color: #475569;
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
-    }
-    .equipment-table .equipment-editor {
-        min-width: 110px;
-        padding: 6px 8px;
-        border-color: #a7d9c4;
-        border-radius: 7px;
-        font-size: .82rem;
-        box-shadow: 0 0 0 2px rgba(16, 185, 129, .07);
-    }
-    .equipment-table .equipment-editor:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(16, 185, 129, .14);
-    }
-    .equipment-table .btn {
-        border-radius: 7px;
-        font-weight: 600;
-        white-space: nowrap;
-    }
-    .equipment-table .equipment-save-btn {
-        box-shadow: 0 2px 7px rgba(16, 185, 129, .18);
-    }
-    @media (max-width: 767.98px) {
-        .equipment-table-wrap {
-            max-height: none;
-        }
-        .equipment-table thead th {
-            padding: 12px 10px;
-        }
-        .equipment-table tbody td {
-            padding: 11px 10px;
-        }
-    }
-</style>
-
-<div class="card-modern equipment-card">
-    <div class="card-body p-0">
+    <section class="equipment-panel">
         {% if equipment %}
-            <div class="table-responsive equipment-table-wrap">
+            <div class="equipment-panel-top">
+                <div>
+                    <div class="fw-semibold">Список оборудования</div>
+                    <div class="small text-muted">Основные сведения, учётные данные и документы</div>
+                </div>
+                <div class="small text-muted"><i class="fas fa-database me-1"></i>{{ equipment|length }} записей</div>
+            </div>
+            <div class="table-responsive">
                 <table class="table equipment-table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th scope="col" class="equipment-name-col">Наименование</th>
-                            <th scope="col">Модель</th>
-                            <th scope="col">Заводской номер</th>
-                            <th scope="col">Инвентарный номер</th>
-                            <th scope="col">Год выпуска</th>
-                            <th scope="col">Год ввода</th>
-                            <th scope="col">Период обслуживания</th>
-                            <th scope="col">Сертификат</th>
-                            <th scope="col">Регистрационное удостоверение</th>
+                            <th>Оборудование</th>
+                            <th>Учётные номера</th>
+                            <th>Годы</th>
+                            <th>Обслуживание</th>
+                            <th>Документы</th>
                             {% if current_user.role == 0 or current_user in queue.admins %}
-                                <th scope="col" class="text-end equipment-actions-col">Действия</th>
+                                <th class="text-end equipment-actions-heading"> </th>
                             {% endif %}
                         </tr>
                     </thead>
                     <tbody>
                         {% for item in equipment %}
-                            <tr class="equipment-row">
-                                <td class="fw-semibold">
-                                    <span class="equipment-value">{{ item.equipment_name or '—' }}</span>
-                                    {% if current_user.role == 0 or current_user in queue.admins %}
-                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
-                                               name="equipment_name" form="equipment-form-{{ item.id }}"
-                                               value="{{ item.equipment_name or '' }}" aria-label="Наименование">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="equipment-value">{{ item.model or '—' }}</span>
-                                    {% if current_user.role == 0 or current_user in queue.admins %}
-                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
-                                               name="model" form="equipment-form-{{ item.id }}"
-                                               value="{{ item.model or '' }}" aria-label="Модель">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="equipment-value equipment-number">{{ item.serial_number or '—' }}</span>
-                                    {% if current_user.role == 0 or current_user in queue.admins %}
-                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
-                                               name="serial_number" form="equipment-form-{{ item.id }}"
-                                               value="{{ item.serial_number or '' }}" aria-label="Заводской номер">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="equipment-value equipment-number">{{ item.inventory_number or '—' }}</span>
-                                    {% if current_user.role == 0 or current_user in queue.admins %}
-                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
-                                               name="inventory_number" form="equipment-form-{{ item.id }}"
-                                               value="{{ item.inventory_number or '' }}" aria-label="Инвентарный номер">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="equipment-value equipment-year">{{ item.production_year or '—' }}</span>
-                                    {% if current_user.role == 0 or current_user in queue.admins %}
-                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
-                                               name="production_year" form="equipment-form-{{ item.id }}"
-                                               value="{{ item.production_year or '' }}" aria-label="Год выпуска">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="equipment-value equipment-year">{{ item.commissioning_year or '—' }}</span>
-                                    {% if current_user.role == 0 or current_user in queue.admins %}
-                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
-                                               name="commissioning_year" form="equipment-form-{{ item.id }}"
-                                               value="{{ item.commissioning_year or '' }}" aria-label="Год ввода">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="equipment-value">{{ item.maintenance_period or '—' }}</span>
-                                    {% if current_user.role == 0 or current_user in queue.admins %}
-                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
-                                               name="maintenance_period" form="equipment-form-{{ item.id }}"
-                                               value="{{ item.maintenance_period or '' }}" aria-label="Период обслуживания">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="equipment-value">{{ item.certificate or '—' }}</span>
-                                    {% if current_user.role == 0 or current_user in queue.admins %}
-                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
-                                               name="certificate" form="equipment-form-{{ item.id }}"
-                                               value="{{ item.certificate or '' }}" aria-label="Сертификат">
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    <span class="equipment-value">{{ item.registration_certificate or '—' }}</span>
-                                    {% if current_user.role == 0 or current_user in queue.admins %}
-                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
-                                               name="registration_certificate" form="equipment-form-{{ item.id }}"
-                                               value="{{ item.registration_certificate or '' }}" aria-label="Регистрационное удостоверение">
-                                    {% endif %}
-                                </td>
+                        <tr class="equipment-row">
+                            <td class="equipment-main-cell">
+                                <div class="equipment-value">
+                                    <div class="equipment-item-name">{{ item.equipment_name or 'Без наименования' }}</div>
+                                    <div class="equipment-subvalue">{{ item.model or 'Модель не указана' }}</div>
+                                </div>
                                 {% if current_user.role == 0 or current_user in queue.admins %}
-                                    <td class="text-end text-nowrap">
-                                        <form id="equipment-form-{{ item.id }}" method="post"
-                                              action="{{ url_for('queue_detail.edit_queue_equipment', queue_id=queue.id, equipment_id=item.id) }}"></form>
-                                        <button type="button" class="btn btn-outline-modern btn-sm equipment-edit-btn" title="Редактировать запись">
-                                            <i class="fas fa-pen me-1"></i> Изменить
-                                        </button>
-                                        <button type="submit" form="equipment-form-{{ item.id }}"
-                                                class="btn btn-primary btn-sm equipment-save-btn d-none">
-                                            <i class="fas fa-save me-1"></i> Сохранить
-                                        </button>
-                                        <button type="button" class="btn btn-outline-modern btn-sm equipment-cancel-btn d-none">
-                                            Отмена
-                                        </button>
-                                    </td>
+                                    <div class="equipment-edit-stack d-none">
+                                        <label>Наименование</label>
+                                        <input class="form-control form-control-sm equipment-editor" type="text" name="equipment_name" form="equipment-form-{{ item.id }}" value="{{ item.equipment_name or '' }}">
+                                        <label>Модель</label>
+                                        <input class="form-control form-control-sm equipment-editor" type="text" name="model" form="equipment-form-{{ item.id }}" value="{{ item.model or '' }}">
+                                    </div>
                                 {% endif %}
-                            </tr>
+                            </td>
+                            <td>
+                                <div class="equipment-value equipment-data-stack">
+                                    <div><span class="equipment-field-label">Заводской</span><span class="equipment-mono">{{ item.serial_number or '—' }}</span></div>
+                                    <div><span class="equipment-field-label">Инвентарный</span><span class="equipment-mono">{{ item.inventory_number or '—' }}</span></div>
+                                </div>
+                                {% if current_user.role == 0 or current_user in queue.admins %}
+                                    <div class="equipment-edit-stack d-none">
+                                        <label>Заводской номер</label>
+                                        <input class="form-control form-control-sm equipment-editor" type="text" name="serial_number" form="equipment-form-{{ item.id }}" value="{{ item.serial_number or '' }}">
+                                        <label>Инвентарный номер</label>
+                                        <input class="form-control form-control-sm equipment-editor" type="text" name="inventory_number" form="equipment-form-{{ item.id }}" value="{{ item.inventory_number or '' }}">
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="equipment-value equipment-data-stack">
+                                    <div><span class="equipment-field-label">Выпуск</span><span class="equipment-year">{{ item.production_year or '—' }}</span></div>
+                                    <div><span class="equipment-field-label">Ввод</span><span class="equipment-year">{{ item.commissioning_year or '—' }}</span></div>
+                                </div>
+                                {% if current_user.role == 0 or current_user in queue.admins %}
+                                    <div class="equipment-edit-stack d-none">
+                                        <label>Год выпуска</label>
+                                        <input class="form-control form-control-sm equipment-editor" type="text" name="production_year" form="equipment-form-{{ item.id }}" value="{{ item.production_year or '' }}">
+                                        <label>Год ввода в эксплуатацию</label>
+                                        <input class="form-control form-control-sm equipment-editor" type="text" name="commissioning_year" form="equipment-form-{{ item.id }}" value="{{ item.commissioning_year or '' }}">
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="equipment-value">
+                                    <span class="equipment-period">{{ item.maintenance_period or 'Не указан' }}</span>
+                                </div>
+                                {% if current_user.role == 0 or current_user in queue.admins %}
+                                    <div class="equipment-edit-stack d-none">
+                                        <label>Период обслуживания</label>
+                                        <input class="form-control form-control-sm equipment-editor" type="text" name="maintenance_period" form="equipment-form-{{ item.id }}" value="{{ item.maintenance_period or '' }}">
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="equipment-value equipment-doc-stack">
+                                    <div><i class="far fa-file-alt"></i><span>{{ item.certificate or 'Сертификат не указан' }}</span></div>
+                                    <div><i class="far fa-file-pdf"></i><span>{{ item.registration_certificate or 'Рег. удостоверение не указано' }}</span></div>
+                                </div>
+                                {% if current_user.role == 0 or current_user in queue.admins %}
+                                    <div class="equipment-edit-stack d-none">
+                                        <label>Сертификат</label>
+                                        <input class="form-control form-control-sm equipment-editor" type="text" name="certificate" form="equipment-form-{{ item.id }}" value="{{ item.certificate or '' }}">
+                                        <label>Регистрационное удостоверение</label>
+                                        <input class="form-control form-control-sm equipment-editor" type="text" name="registration_certificate" form="equipment-form-{{ item.id }}" value="{{ item.registration_certificate or '' }}">
+                                    </div>
+                                {% endif %}
+                            </td>
+                            {% if current_user.role == 0 or current_user in queue.admins %}
+                                <td class="text-end text-nowrap equipment-actions-cell">
+                                    <form id="equipment-form-{{ item.id }}" method="post"
+                                          action="{{ url_for('queue_detail.edit_queue_equipment', queue_id=queue.id, equipment_id=item.id) }}"></form>
+                                    <button type="button" class="btn btn-sm equipment-edit-btn" title="Редактировать">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <div class="equipment-edit-actions d-none">
+                                        <button type="submit" form="equipment-form-{{ item.id }}" class="btn btn-sm btn-primary equipment-save-btn" title="Сохранить">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm equipment-cancel-btn" title="Отменить">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            {% endif %}
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         {% else %}
-            <div class="text-center py-5">
-                <i class="fas fa-box-open mb-3" style="font-size: 2rem; color: var(--gray-400);"></i>
-                <h5 class="fw-semibold">Оборудование не найдено</h5>
-                <p class="text-muted mb-0">Для этой очереди пока нет записей в базе данных.</p>
+            <div class="equipment-empty">
+                <div class="equipment-empty-icon"><i class="fas fa-box-open"></i></div>
+                <h5>Оборудование пока не добавлено</h5>
+                <p>Импортируйте список из Excel, чтобы заполнить реестр.</p>
+                {% if current_user.role == 0 or current_user in queue.admins %}
+                    <button type="button" class="btn btn-primary equipment-import-btn"
+                            onclick="document.getElementById('equipment-import-file').click();">
+                        <i class="fas fa-file-import me-2"></i>Импортировать Excel
+                    </button>
+                {% endif %}
             </div>
         {% endif %}
-    </div>
+    </section>
 </div>
+
+<style>
+    .equipment-page { --eq-ink: #25332f; --eq-muted: #83908b; --eq-line: #e9efec; --eq-green: #0f9f6e; }
+    .equipment-breadcrumb { display:flex; align-items:center; gap:9px; color:var(--eq-muted); font-size:.8rem; }
+    .equipment-breadcrumb a { color:#648078; text-decoration:none; }
+    .equipment-breadcrumb a:hover { color:var(--eq-green); }
+    .equipment-breadcrumb i { font-size:.58rem; color:#b4c0bb; }
+    .equipment-heading-icon { width:43px; height:43px; display:grid; place-items:center; border-radius:12px; background:#eaf7f1; color:var(--eq-green); font-size:1.1rem; }
+    .equipment-page h4 { color:var(--eq-ink); letter-spacing:-.025em; }
+    .equipment-count { display:inline-flex; align-items:center; justify-content:center; min-width:27px; height:25px; padding:0 8px; border-radius:20px; background:#edf5f1; color:#43836a; font-size:.75rem; font-weight:700; }
+    .equipment-toolbar-btn, .equipment-import-btn { height:38px; display:inline-flex; align-items:center; border-radius:9px; padding:0 14px; font-size:.82rem; font-weight:600; }
+    .equipment-toolbar-btn { border:1px solid #e5ece8; background:#fff; color:#52635c; }
+    .equipment-toolbar-btn:hover { background:#f5faf7; border-color:#cfe5d9; color:#267b59; }
+    .equipment-import-btn { background:#119b6b; border-color:#119b6b; box-shadow:0 3px 8px rgba(17,155,107,.14); }
+    .equipment-import-btn:hover { background:#0d855b; border-color:#0d855b; }
+    .equipment-panel { overflow:hidden; background:#fff; border:1px solid #e7eeea; border-radius:14px; box-shadow:0 5px 22px rgba(28,54,43,.045); }
+    .equipment-panel-top { min-height:68px; padding:15px 21px; display:flex; align-items:center; justify-content:space-between; gap:15px; border-bottom:1px solid var(--eq-line); }
+    .equipment-panel-top .fw-semibold { color:var(--eq-ink); font-size:.92rem; }
+    .equipment-panel-top .small { margin-top:3px; font-size:.76rem; }
+    .equipment-table { width:100%; min-width:940px; color:#485750; font-size:.82rem; }
+    .equipment-table thead th { padding:13px 17px; background:#f8faf9; border-bottom:1px solid #e8eeeb; color:#84918b; font-size:.68rem; font-weight:700; letter-spacing:.065em; text-transform:uppercase; white-space:nowrap; }
+    .equipment-table tbody td { padding:17px; border-bottom:1px solid #eff3f1; vertical-align:middle; }
+    .equipment-table tbody tr:last-child td { border-bottom:0; }
+    .equipment-table tbody tr { transition:background .16s ease; }
+    .equipment-table tbody tr:hover td { background:#f8fcfa; }
+    .equipment-table .equipment-main-cell { min-width:210px; max-width:280px; }
+    .equipment-item-name { color:#293a33; font-weight:700; font-size:.86rem; line-height:1.4; overflow-wrap:anywhere; }
+    .equipment-subvalue { margin-top:5px; color:#8a9791; font-size:.77rem; overflow-wrap:anywhere; }
+    .equipment-data-stack { display:grid; gap:9px; }
+    .equipment-data-stack > div { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+    .equipment-field-label { min-width:72px; color:#98a49e; font-size:.69rem; }
+    .equipment-mono { color:#53645c; font-size:.76rem; font-variant-numeric:tabular-nums; }
+    .equipment-year { color:#43584e; font-weight:600; font-variant-numeric:tabular-nums; }
+    .equipment-period { display:inline-block; padding:6px 9px; border-radius:7px; background:#f3f7f5; color:#587067; font-size:.76rem; }
+    .equipment-doc-stack { display:grid; gap:9px; min-width:185px; max-width:250px; }
+    .equipment-doc-stack > div { display:flex; align-items:flex-start; gap:8px; color:#64736c; font-size:.75rem; line-height:1.4; overflow-wrap:anywhere; }
+    .equipment-doc-stack i { margin-top:2px; color:#9aaba2; }
+    .equipment-actions-heading { width:65px; }
+    .equipment-actions-cell { width:65px; }
+    .equipment-edit-btn, .equipment-cancel-btn { width:33px; height:33px; display:inline-grid; place-items:center; border:1px solid #e5ece8; border-radius:8px; background:#fff; color:#718179; }
+    .equipment-edit-btn:hover, .equipment-cancel-btn:hover { border-color:#b9dfcc; background:#eff9f3; color:#16865e; }
+    .equipment-edit-actions { display:flex; justify-content:flex-end; gap:5px; }
+    .equipment-save-btn { width:33px; height:33px; display:inline-grid; place-items:center; border-radius:8px; background:#119b6b; border-color:#119b6b; }
+    .equipment-edit-stack { display:grid; gap:5px; min-width:160px; }
+    .equipment-edit-stack label { margin-top:4px; color:#89968f; font-size:.67rem; font-weight:600; }
+    .equipment-editor { min-width:130px; border:1px solid #dce8e1; border-radius:7px; font-size:.78rem; }
+    .equipment-editor:focus { border-color:#54b58a; box-shadow:0 0 0 3px rgba(17,155,107,.1); }
+    .equipment-row.is-editing td { background:#f7fcf9 !important; vertical-align:top; }
+    .equipment-empty { padding:65px 20px; text-align:center; }
+    .equipment-empty-icon { width:58px; height:58px; margin:0 auto 17px; display:grid; place-items:center; border-radius:17px; background:#eff7f3; color:#5b9a7b; font-size:1.4rem; }
+    .equipment-empty h5 { color:#34463d; font-weight:700; }
+    .equipment-empty p { margin:7px 0 18px; color:#89968f; font-size:.85rem; }
+    @media (max-width:767.98px) {
+        .equipment-panel-top { padding:13px 15px; }
+        .equipment-table thead th { padding:12px; }
+        .equipment-table tbody td { padding:13px 12px; }
+        .equipment-toolbar-btn, .equipment-import-btn { padding:0 11px; }
+    }
+</style>
 
 {% if current_user.role == 0 or current_user in queue.admins %}
 <script>
 document.addEventListener('click', function (event) {
-    const editButton = event.target.closest('.equipment-edit-btn');
-    const cancelButton = event.target.closest('.equipment-cancel-btn');
+    const target = event.target instanceof Element ? event.target : null;
+    if (!target) return;
 
+    const editButton = target.closest('.equipment-edit-btn');
+    const cancelButton = target.closest('.equipment-cancel-btn');
     if (!editButton && !cancelButton) return;
 
     const row = (editButton || cancelButton).closest('.equipment-row');
+    if (!row) return;
+
     const editing = Boolean(editButton);
+    if (editing) {
+        row.querySelectorAll('.equipment-editor').forEach(input => {
+            input.dataset.originalValue = input.value;
+        });
+    } else {
+        row.querySelectorAll('.equipment-editor').forEach(input => {
+            input.value = input.dataset.originalValue ?? input.value;
+        });
+    }
 
     row.querySelectorAll('.equipment-value').forEach(el => el.classList.toggle('d-none', editing));
-    row.querySelectorAll('.equipment-editor').forEach(el => {
-        el.classList.toggle('d-none', !editing);
-        if (editing) el.dataset.originalValue = el.value;
-        else el.value = el.dataset.originalValue ?? el.value;
-    });
+    row.querySelectorAll('.equipment-edit-stack').forEach(el => el.classList.toggle('d-none', !editing));
     row.querySelector('.equipment-edit-btn').classList.toggle('d-none', editing);
-    row.querySelector('.equipment-save-btn').classList.toggle('d-none', !editing);
-    row.querySelector('.equipment-cancel-btn').classList.toggle('d-none', !editing);
+    row.querySelector('.equipment-edit-actions').classList.toggle('d-none', !editing);
+    row.classList.toggle('is-editing', editing);
 });
 </script>
 {% endif %}
-
 {% endblock %}
