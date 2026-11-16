@@ -282,8 +282,7 @@ html[data-theme="dark"] .alert {
     border-color: #405348 !important;
 }
 
-html[data-theme="dark"] .badge.bg-light,
-html[data-theme="dark"] .badge.text-dark {
+html[data-theme="dark"] .badge.bg-light.text-dark {
     background-color: #304138 !important;
     color: #dce7df !important;
 }
@@ -468,4 +467,18 @@ html[data-theme="dark"] .user-card-contact {
 html[data-theme="dark"] .index-sidebar .sidebar {
     background: #19251e !important;
     border-color: #304138 !important;
+}
+
+/* Сохраняем контраст семантических Bootstrap-бейджей */
+html[data-theme="dark"] .badge.bg-warning.text-dark {
+    background-color: #493718 !important;
+    color: #fbbf24 !important;
+}
+html[data-theme="dark"] .badge.bg-info.text-dark {
+    background-color: #153b4a !important;
+    color: #7dd3fc !important;
+}
+html[data-theme="dark"] .badge.bg-success.text-dark {
+    background-color: #173b2a !important;
+    color: #86efac !important;
 }
