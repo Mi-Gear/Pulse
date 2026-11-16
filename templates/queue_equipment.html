@@ -39,8 +39,8 @@
     .equipment-table {
         min-width: 1380px;
         border-collapse: separate;
-        border-spacing: 0 9px;
-        margin-top: -9px;
+        border-spacing: 0 3px;
+        margin-top: -3px;
     }
     .equipment-table thead th {
         padding: 10px 12px;
@@ -52,7 +52,7 @@
         white-space: nowrap;
     }
     .equipment-table tbody td {
-        padding: 13px 12px;
+        padding: 8px 10px;
         vertical-align: middle;
         white-space: nowrap;
         background: var(--bs-body-bg, #fff);
@@ -60,7 +60,7 @@
         border-bottom: 1px solid var(--bs-border-color, #e8edf0);
         transition: background-color .15s ease, box-shadow .15s ease;
     }
-    .equipment-table tbody td:first-child {
+    .equipment-table tbody td:first-child {\n        width: 38px;\n        text-align: center;\n        border-left: 1px solid var(--bs-border-color, #e8edf0);\n        border-radius: 10px 0 0 10px;\n    }\n    .equipment-table tbody td:nth-child(2) {
         border-left: 3px solid var(--primary, #198754);
         border-radius: 10px 0 0 10px;
         font-weight: 600;
@@ -89,11 +89,19 @@
     }
 </style>
 
+{% if current_user.role == 0 or current_user in queue.admins %}
+    <form id="equipment-delete-form" method="POST" action="{{ url_for('queue_detail.delete_queue_equipment', queue_id=queue.id) }}" onsubmit="return confirm('Удалить выбранные записи оборудования?');"></form>
+    <div id="equipment-bulk-actions" class="d-none align-items-center gap-2 mb-2">
+        <span class="small text-muted" id="equipment-selected-count">Выбрано: 0</span>
+        <button type="submit" form="equipment-delete-form" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i> Удалить выбранное</button>
+    </div>
+{% endif %}
 {% if equipment %}
     <div class="equipment-list">
         <table class="table equipment-table align-middle mb-0">
             <thead class="table-light">
                 <tr>
+                    {% if current_user.role == 0 or current_user in queue.admins %}<th class="text-center"><input class="form-check-input" type="checkbox" id="equipment-select-all" aria-label="Выбрать все строки"></th>{% endif %}
                     <th class="px-3 py-3">Наименование</th>
                     <th class="py-3">Модель</th>
                     <th class="py-3">Заводской номер</th>
@@ -109,6 +117,7 @@
             <tbody>
                 {% for item in equipment %}
                     <tr class="equipment-row">
+                        {% if current_user.role == 0 or current_user in queue.admins %}<td><input class="form-check-input equipment-select" type="checkbox" name="equipment_ids" value="{{ item.id }}" form="equipment-delete-form" aria-label="Выбрать {{ item.equipment_name or 'оборудование' }}"></td>{% endif %}
                         <td class="px-3 fw-semibold">
                             <span class="equipment-value">{{ item.equipment_name or '—' }}</span>
                             {% if current_user.role == 0 or current_user in queue.admins %}
@@ -185,6 +194,31 @@
 {% endif %}
 {% if current_user.role == 0 or current_user in queue.admins %}
 <script>
+const selectionBoxes = () => Array.from(document.querySelectorAll('.equipment-select'));
+function updateEquipmentSelection() {
+    const selected = selectionBoxes().filter(box => box.checked);
+    const actions = document.getElementById('equipment-bulk-actions');
+    const count = document.getElementById('equipment-selected-count');
+    const selectAll = document.getElementById('equipment-select-all');
+    if (actions) {
+        actions.classList.toggle('d-none', selected.length === 0);
+        actions.classList.toggle('d-flex', selected.length > 0);
+    }
+    if (count) count.textContent = 'Выбрано: ' + selected.length;
+    if (selectAll) {
+        selectAll.checked = selected.length > 0 && selected.length === selectionBoxes().length;
+        selectAll.indeterminate = selected.length > 0 && selected.length < selectionBoxes().length;
+    }
+}
+document.addEventListener('change', function (event) {
+    if (event.target.matches('#equipment-select-all')) {
+        selectionBoxes().forEach(box => box.checked = event.target.checked);
+        updateEquipmentSelection();
+    } else if (event.target.matches('.equipment-select')) {
+        updateEquipmentSelection();
+    }
+});
+
 document.addEventListener('click', function (event) {
     const editButton = event.target.closest('.equipment-edit-btn');
     const cancelButton = event.target.closest('.equipment-cancel-btn');
