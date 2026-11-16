@@ -155,6 +155,32 @@ def edit_queue_equipment(queue_id, equipment_id):
     return redirect(url_for("queue_detail.queue_equipment", queue_id=queue.id))
 
 
+@q_detail_bp.route('/queue/<int:queue_id>/equipment/delete', methods=['POST'])
+@login_required
+def delete_queue_equipment(queue_id):
+    queue = Queue.query.get_or_404(queue_id)
+    if current_user.role != 0 and current_user not in queue.admins:
+        abort(403)
+
+    raw_ids = request.form.getlist("equipment_ids")
+    try:
+        equipment_ids = {int(value) for value in raw_ids}
+    except (TypeError, ValueError):
+        abort(400)
+
+    if not equipment_ids:
+        flash("Выберите хотя бы одну запись для удаления.", "warning")
+        return redirect(url_for("queue_detail.queue_equipment", queue_id=queue.id))
+
+    deleted = Equipment.query.filter(
+        Equipment.queue_id == queue.id,
+        Equipment.id.in_(equipment_ids)
+    ).delete(synchronize_session=False)
+    db.session.commit()
+    flash(f"Удалено записей: {deleted}.", "success")
+    return redirect(url_for("queue_detail.queue_equipment", queue_id=queue.id))
+
+
 @q_detail_bp.route('/queue/<int:queue_id>/equipment/template')
 @login_required
 def download_equipment_template(queue_id):
