@@ -169,7 +169,6 @@ def download_equipment_template(queue_id):
     sheet.append(headers)
     sheet.append([None] * len(headers))
     sheet.freeze_panes = "A2"
-    sheet.auto_filter.ref = f"A1:{chr(64 + len(headers))}2"
     for cell in sheet[1]:
         cell.font = Font(bold=True, color="FFFFFF")
         cell.fill = PatternFill("solid", fgColor="34445B")
@@ -178,29 +177,6 @@ def download_equipment_template(queue_id):
     widths = [34, 22, 22, 22, 16, 23, 24, 24, 34]
     for index, width in enumerate(widths, start=1):
         sheet.column_dimensions[chr(64 + index)].width = width
-    table = Table(displayName="EquipmentImport", ref=f"A1:{chr(64 + len(headers))}2")
-    table.tableStyleInfo = TableStyleInfo(
-        name="TableStyleMedium2",
-        showFirstColumn=False,
-        showLastColumn=False,
-        showRowStripes=True,
-        showColumnStripes=False
-    )
-    sheet.add_table(table)
-
-    instructions = workbook.create_sheet("Инструкция")
-    instructions.append(["Как заполнять шаблон"])
-    instructions.append(["Заполняйте данные на листе «Оборудование», начиная со второй строки."])
-    instructions.append(["Не изменяйте названия столбцов. Пустые строки будут пропущены."])
-    instructions.append(["При совпадении инвентарного или заводского номера запись обновится."])
-    instructions.append(["Если оба номера не указаны, совпадение определяется по наименованию и модели."])
-    instructions.append(["Пустые ячейки при обновлении не стирают ранее сохранённые значения."])
-    instructions.column_dimensions["A"].width = 110
-    instructions["A1"].font = Font(bold=True, size=14, color="FFFFFF")
-    instructions["A1"].fill = PatternFill("solid", fgColor="34445B")
-    for row in instructions.iter_rows(min_row=2):
-        row[0].alignment = Alignment(wrap_text=True, vertical="top")
-    instructions.freeze_panes = "A2"
 
     output = BytesIO()
     workbook.save(output)
