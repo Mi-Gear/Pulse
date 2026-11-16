@@ -146,7 +146,7 @@
 
 
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}"></script>
 <script>
 // ===== ИНИЦИАЛИЗАЦИЯ ГРАФИКОВ =====
 let statusChart, priorityChart, queueChart, dailyChart;
