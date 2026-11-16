@@ -190,16 +190,42 @@ function openFilteredTickets(kind, value, data) {
     window.location.href = '/statistics/tickets?' + params.toString();
 }
 
+function syncStatisticsChartsTheme(theme) {
+    if (typeof Chart === 'undefined') return;
+    const dark = theme === 'dark';
+    const textColor = dark ? '#bdc9c1' : '#64748b';
+    const gridColor = dark ? '#304138' : '#edf2f0';
+    Chart.defaults.color = textColor;
+    Chart.defaults.plugins.tooltip.backgroundColor = dark ? '#304138' : '#17211f';
+
+    Object.values(Chart.instances || {}).forEach(chart => {
+        chart.options.color = textColor;
+        if (chart.options.scales) {
+            Object.values(chart.options.scales).forEach(scale => {
+                if (scale.ticks) scale.ticks.color = textColor;
+                if (scale.grid && scale.grid.display !== false) scale.grid.color = gridColor;
+                if (scale.title) scale.title.color = textColor;
+            });
+        }
+        chart.update('none');
+    });
+}
+
+window.addEventListener('pulse-theme-change', event => {
+    syncStatisticsChartsTheme(event.detail?.theme || document.documentElement.getAttribute('data-theme'));
+});
+
 function initCharts(data) {
     window.statisticsChartData = data;
     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     Chart.defaults.font.size = 12;
-    Chart.defaults.color = '#64748b';
+    Chart.defaults.color = document.documentElement.getAttribute('data-theme') === 'dark' ? '#bdc9c1' : '#64748b';
     Chart.defaults.plugins.legend.labels.usePointStyle = true;
     Chart.defaults.plugins.legend.labels.padding = 18;
-    Chart.defaults.plugins.tooltip.backgroundColor = '#17211f';
+    Chart.defaults.plugins.tooltip.backgroundColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#304138' : '#17211f';
     Chart.defaults.plugins.tooltip.padding = 12;
     Chart.defaults.plugins.tooltip.cornerRadius = 10;
+    syncStatisticsChartsTheme(document.documentElement.getAttribute('data-theme') || 'light');
 
     // Цветовая схема
     const colors = {
@@ -255,7 +281,7 @@ function initCharts(data) {
             onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
             scales: {
                 x: { grid: { display: false } },
-                y: { beginAtZero: true, grid: { color: '#edf2f0' }, ticks: { precision: 0 } }
+                y: { beginAtZero: true, grid: { color: document.documentElement.getAttribute('data-theme') === 'dark' ? '#304138' : '#edf2f0' }, ticks: { precision: 0 } }
             }
         }
     });
