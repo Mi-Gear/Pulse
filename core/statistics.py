@@ -217,6 +217,7 @@ def chart_data():
         last_day = today
 
     daily_data = {}
+    daily_dates = {}
     for offset in range(max(0, (last_day - first_day).days) + 1):
         day = first_day + timedelta(days=offset)
         day_start = datetime.combine(day, datetime.min.time())
