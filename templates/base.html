@@ -413,6 +413,36 @@
         html[data-theme="dark"] .theme-toggle {
             color: #c2d0c7;
         }
+        /* Плавное круговое раскрытие новой темы */
+        @keyframes pulse-theme-wipe {
+            from { clip-path: circle(150vmax at var(--theme-x, 50%) var(--theme-y, 50%)); }
+            to { clip-path: circle(0 at var(--theme-x, 50%) var(--theme-y, 50%)); }
+        }
+        html::view-transition-group(root) {
+            animation-duration: 720ms;
+        }
+        html::view-transition-old(root) {
+            animation: pulse-theme-wipe 720ms cubic-bezier(.76, 0, .24, 1) both;
+            z-index: 2;
+        }
+        html::view-transition-new(root) {
+            animation: none;
+            z-index: 1;
+        }
+        html.theme-transition,
+        html.theme-transition body,
+        html.theme-transition body * {
+            transition-property: background-color, color, border-color, box-shadow !important;
+            transition-duration: 680ms !important;
+            transition-timing-function: cubic-bezier(.22, 1, .36, 1) !important;
+        }
+        @media (prefers-reduced-motion: reduce) {
+            html::view-transition-old(root) { animation-duration: 1ms; }
+            html.theme-transition,
+            html.theme-transition body,
+            html.theme-transition body * { transition-duration: 1ms !important; }
+        }
+
         @media (max-width: 991.98px) {
             .theme-toggle {
                 margin: 8px 12px;
@@ -529,8 +559,6 @@
             const toggle = document.getElementById("theme-toggle");
             if (!toggle) return;
 
-            let activeOverlay = null;
-
             function applyTheme(theme) {
                 const isDark = theme === "dark";
                 document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
@@ -539,66 +567,27 @@
             }
 
             function animateTheme(theme) {
-                const isDark = theme === "dark";
-                const track = toggle.nextElementSibling;
-                const rect = track.getBoundingClientRect();
-                const x = rect.left + rect.width / 2;
-                const y = rect.top + rect.height / 2;
-
-                if (activeOverlay) {
-                    activeOverlay.remove();
-                    activeOverlay = null;
-                }
-
-                if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || typeof Element.prototype.animate !== "function") {
+                const root = document.documentElement;
+                if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
                     applyTheme(theme);
                     return;
                 }
 
-                const overlay = document.createElement("div");
-                overlay.setAttribute("aria-hidden", "true");
-                Object.assign(overlay.style, {
-                    position: "fixed",
-                    width: "300vmax",
-                    height: "300vmax",
-                    left: x + "px",
-                    top: y + "px",
-                    borderRadius: "50%",
-                    zIndex: "2147483647",
-                    pointerEvents: "none",
-                    backgroundColor: isDark ? "#121b16" : "#f5f8f6",
-                    transform: "translate(-50%, -50%) scale(0)",
-                    transformOrigin: "center center",
-                    willChange: "transform"
-                });
-                document.body.appendChild(overlay);
-                activeOverlay = overlay;
+                const rect = toggle.nextElementSibling.getBoundingClientRect();
+                root.style.setProperty("--theme-x", (rect.left + rect.width / 2) + "px");
+                root.style.setProperty("--theme-y", (rect.top + rect.height / 2) + "px");
 
-                try {
-                    const animation = overlay.animate(
-                        [
-                            { transform: "translate(-50%, -50%) scale(0)" },
-                            { transform: "translate(-50%, -50%) scale(1)" }
-                        ],
-                        { duration: 850, easing: "cubic-bezier(.65, 0, .25, 1)", fill: "forwards" }
-                    );
-                    animation.onfinish = () => {
-                        if (activeOverlay !== overlay) return;
-                        applyTheme(theme);
-                        overlay.remove();
-                        activeOverlay = null;
-                    };
-                    animation.oncancel = () => {
-                        if (activeOverlay === overlay) {
-                            overlay.remove();
-                            activeOverlay = null;
-                        }
-                    };
-                } catch (error) {
-                    overlay.remove();
-                    activeOverlay = null;
-                    applyTheme(theme);
+                // View Transitions сохраняет снимок текущей страницы и раскрывает новую тему кругом.
+                if (typeof document.startViewTransition === "function") {
+                    document.startViewTransition(() => applyTheme(theme));
+                    return;
                 }
+
+                // Плавный fallback для браузеров без View Transitions.
+                root.classList.add("theme-transition");
+                void root.offsetWidth;
+                applyTheme(theme);
+                window.setTimeout(() => root.classList.remove("theme-transition"), 750);
             }
 
             applyTheme(document.documentElement.getAttribute("data-theme") || "light");
