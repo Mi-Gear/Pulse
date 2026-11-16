@@ -15,6 +15,69 @@ def statistics():
     users = User.query.all()
     return render_template('statistics.html', queues=queues, users=users, ticket = Ticket)
 
+
+@stat_bp.route('/statistics/tickets')
+@login_required
+def statistics_tickets():
+    query = Ticket.query
+
+    # Показываем только заявки, к которым у пользователя уже есть доступ.
+    if current_user.role != 0:
+        queue_ids = [queue.id for queue in current_user.queues]
+        query = query.filter(
+            or_(
+                Ticket.queue_id.in_(queue_ids),
+                Ticket.created_by_id == current_user.id
+            )
+        )
+
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    queue_id = request.args.get('queue_id', '').strip()
+    status_filter = request.args.get('status', 'all').strip()
+    priority_filter = request.args.get('priority', '').strip()
+
+    if start_date:
+        try:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        except ValueError:
+            abort(400, description='Некорректная дата начала')
+        query = query.filter(Ticket.created_at >= start_dt)
+
+    if end_date:
+        try:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        except ValueError:
+            abort(400, description='Некорректная дата окончания')
+        query = query.filter(Ticket.created_at < end_dt)
+
+    if queue_id:
+        try:
+            query = query.filter(Ticket.queue_id == int(queue_id))
+        except ValueError:
+            abort(400, description='Некорректная очередь')
+
+    if status_filter == 'active':
+        query = query.filter(Ticket.status.in_(['Новая', 'В работе']))
+    elif status_filter and status_filter != 'all':
+        query = query.filter(Ticket.status == status_filter)
+
+    if priority_filter:
+        query = query.filter(Ticket.priority == priority_filter)
+
+    tickets = query.order_by(Ticket.created_at.desc()).all()
+
+    return render_template(
+        'statistics_tickets.html',
+        tickets=tickets,
+        queues=Queue.query.order_by(Queue.name).all(),
+        start_date=start_date,
+        end_date=request.args.get('end_date', '').strip(),
+        queue_filter=queue_id,
+        status_filter=status_filter,
+        priority_filter=priority_filter
+    )
+
 @stat_bp.route('/api/statistics/export')
 @login_required
 def export_statistics():
@@ -158,7 +221,9 @@ def chart_data():
         day = first_day + timedelta(days=offset)
         day_start = datetime.combine(day, datetime.min.time())
         day_end = day_start + timedelta(days=1)
-        daily_data[day.strftime('%d.%m')] = query.filter(
+        day_label = day.strftime('%d.%m')
+        daily_dates[day_label] = day.isoformat()
+        daily_data[day_label] = query.filter(
             Ticket.created_at >= day_start,
             Ticket.created_at < day_end
         ).count()
@@ -171,5 +236,6 @@ def chart_data():
         'priority': priority_data,
         'queues': top_queues,
         'queue_ids': top_queue_ids,
-        'daily': daily_data
+        'daily': daily_data,
+        'daily_dates': daily_dates
     })

@@ -169,18 +169,25 @@ function filtersQuery() {
     return params.toString();
 }
 
-function applyChartSelection(kind, value, data) {
-    if (kind === 'status') document.getElementById('statusFilter').value = value;
-    if (kind === 'priority') document.getElementById('priorityFilter').value = value;
-    if (kind === 'queue') document.getElementById('queueFilter').value = String(data.queue_ids[value] || '');
-    if (kind === 'day') {
-        const parts = value.split('.');
-        const date = new Date(new Date().getFullYear(), Number(parts[1]) - 1, Number(parts[0]));
-        const iso = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
-        document.getElementById('startDate').value = iso;
-        document.getElementById('endDate').value = iso;
+function openFilteredTickets(kind, value, data) {
+    const params = new URLSearchParams(filtersQuery());
+
+    if (kind === 'status') {
+        params.set('status', value);
+    } else if (kind === 'priority') {
+        params.set('priority', value);
+    } else if (kind === 'queue') {
+        const queueId = data.queue_ids[value];
+        if (!queueId) return;
+        params.set('queue_id', String(queueId));
+    } else if (kind === 'day') {
+        const isoDate = data.daily_dates[value];
+        if (!isoDate) return;
+        params.set('start_date', isoDate);
+        params.set('end_date', isoDate);
     }
-    applyFilters();
+
+    window.location.href = '/statistics/tickets?' + params.toString();
 }
 
 function initCharts(data) {
@@ -222,7 +229,7 @@ function initCharts(data) {
         options: {
             responsive: true, maintainAspectRatio: false, cutout: '72%',
             plugins: { legend: { position: 'bottom' } },
-            onClick: (event, elements) => { if (elements.length) applyChartSelection('status', statusChart.data.labels[elements[0].index], data); },
+            onClick: (event, elements) => { if (elements.length) openFilteredTickets('status', statusChart.data.labels[elements[0].index], data); },
             onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }
         }
     });
@@ -244,7 +251,7 @@ function initCharts(data) {
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            onClick: (event, elements) => { if (elements.length) applyChartSelection('priority', priorityChart.data.labels[elements[0].index], data); },
+            onClick: (event, elements) => { if (elements.length) openFilteredTickets('priority', priorityChart.data.labels[elements[0].index], data); },
             onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
             scales: {
                 x: { grid: { display: false } },
@@ -271,7 +278,7 @@ function initCharts(data) {
         options: {
             responsive: true, maintainAspectRatio: false, indexAxis: 'y',
             plugins: { legend: { display: false } },
-            onClick: (event, elements) => { if (elements.length) applyChartSelection('queue', queueChart.data.labels[elements[0].index], data); },
+            onClick: (event, elements) => { if (elements.length) openFilteredTickets('queue', queueChart.data.labels[elements[0].index], data); },
             onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
             scales: {
                 x: { beginAtZero: true, grid: { color: '#edf2f0' }, ticks: { precision: 0 } },
@@ -305,7 +312,7 @@ function initCharts(data) {
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
-            onClick: (event, elements) => { if (elements.length) applyChartSelection('day', dailyChart.data.labels[elements[0].index], data); },
+            onClick: (event, elements) => { if (elements.length) openFilteredTickets('day', dailyChart.data.labels[elements[0].index], data); },
             onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
             scales: {
                 x: { grid: { display: false } },
@@ -372,7 +379,7 @@ window.addEventListener('resize', function() {
 .chart-body { height:300px; padding:18px 20px 20px; }
 .chart-body-tall { height:340px; }
 .chart-body canvas { max-width:100%; cursor:pointer; }
-.chart-card-header::after { content:"Нажмите на элемент графика для фильтрации"; margin-left:auto; color:#94a39b; font-size:.7rem; font-weight:500; }
+.chart-card-header::after { content:"Нажмите, чтобы открыть список заявок"; margin-left:auto; color:#94a39b; font-size:.7rem; font-weight:500; }
 @media (max-width:767px) { .chart-card-header::after { width:100%; margin-left:0; } }
 .stats-table-card .card-body { padding:0; }
 .stats-table-card .table-responsive { padding:4px 12px 12px; }
