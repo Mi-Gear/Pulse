@@ -15,9 +15,20 @@
         </div>
         <div class="text-muted small mt-1">{{ queue.name }}</div>
     </div>
-    <a href="{{ url_for('queue_detail.queue_detail', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
-        <i class="fas fa-arrow-left me-1"></i> К очереди
-    </a>
+    <div class="d-flex align-items-center flex-wrap gap-2">
+        <a href="{{ url_for('queue_detail.download_equipment_template', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
+            <i class="fas fa-file-excel me-1"></i> Скачать шаблон
+        </a>
+        <form action="{{ url_for('queue_detail.import_queue_equipment', queue_id=queue.id) }}" method="POST" enctype="multipart/form-data" class="d-flex align-items-center flex-wrap gap-2">
+            <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required style="max-width: 220px;">
+            <button type="submit" class="btn btn-primary btn-sm">
+                <i class="fas fa-upload me-1"></i> Импортировать
+            </button>
+        </form>
+        <a href="{{ url_for('queue_detail.queue_detail', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> К очереди
+        </a>
+    </div>
 </div>
 
 {% if equipment %}
