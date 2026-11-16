@@ -148,7 +148,10 @@ def _fetch_latest():
 
     local_sha = local.stdout.strip()
     remote_sha = remote.stdout.strip()
-    return None if local_sha == remote_sha else remote_sha
+    if local_sha == remote_sha:
+        print("[UPDATE] Обновлений не найдено.", flush=True)
+        return None
+    return remote_sha
 
 
 def _install_update():
