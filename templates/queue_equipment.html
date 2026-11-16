@@ -19,9 +19,11 @@
             <i class="fas fa-file-download me-1"></i> Скачать шаблон импорта
         </a>
         {% if current_user.role == 0 or current_user in queue.admins %}
-            <form method="post" action="{{ url_for('queue_detail.import_queue_equipment', queue_id=queue.id) }}" enctype="multipart/form-data" class="d-flex flex-wrap gap-2">
-                <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required style="max-width: 260px;">
-                <button type="submit" class="btn btn-primary btn-sm">
+            <form id="equipment-import-form" method="post" action="{{ url_for('queue_detail.import_queue_equipment', queue_id=queue.id) }}" enctype="multipart/form-data">
+                <input id="equipment-import-file" type="file" name="file" accept=".xlsx" required hidden
+                       onchange="if (this.files.length) this.form.submit();">
+                <button type="button" class="btn btn-primary btn-sm"
+                        onclick="document.getElementById('equipment-import-file').click();">
                     <i class="fas fa-file-import me-1"></i> Импортировать
                 </button>
             </form>
