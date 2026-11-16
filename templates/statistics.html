@@ -47,6 +47,15 @@
                     <option value="Закрыта">Закрыта</option>
                 </select>
             </div>
+            <div class="col-md-2">
+                <label class="form-label-modern small">Приоритет</label>
+                <select class="form-select-modern" name="priority" id="priorityFilter">
+                    <option value="">Все</option>
+                    <option value="Низкий">Низкий</option>
+                    <option value="Средний">Средний</option>
+                    <option value="Высокий">Высокий</option>
+                </select>
+            </div>
             <div class="col-md-1">
                 <button type="button" class="btn btn-primary-gradient w-100" onclick="applyFilters()">
                     <i class="fas fa-search"></i>
@@ -92,7 +101,7 @@
 <div class="row g-4 mb-4">
     <div class="col-md-6">
         <div class="card-modern">
-            <div class="card-header">
+            <div class="card-header chart-card-header">
                 <i class="fas fa-circle me-2" style="color: var(--primary);"></i>Заявки по статусам
             </div>
             <div class="card-body chart-body chart-body-tall">
@@ -102,7 +111,7 @@
     </div>
     <div class="col-md-6">
         <div class="card-modern">
-            <div class="card-header">
+            <div class="card-header chart-card-header">
                 <i class="fas fa-flag me-2" style="color: var(--primary);"></i>Заявки по приоритетам
             </div>
             <div class="card-body chart-body">
@@ -115,7 +124,7 @@
 <div class="row g-4 mb-4">
     <div class="col-md-6">
         <div class="card-modern">
-            <div class="card-header">
+            <div class="card-header chart-card-header">
                 <i class="fas fa-layer-group me-2" style="color: var(--primary);"></i>Заявки по очередям
             </div>
             <div class="card-body chart-body">
@@ -125,7 +134,7 @@
     </div>
     <div class="col-md-6">
         <div class="card-modern">
-            <div class="card-header">
+            <div class="card-header chart-card-header">
                 <i class="fas fa-calendar-alt me-2" style="color: var(--primary);"></i>Заявки по дням
             </div>
             <div class="card-body chart-body">
@@ -142,7 +151,40 @@
 // ===== ИНИЦИАЛИЗАЦИЯ ГРАФИКОВ =====
 let statusChart, priorityChart, queueChart, dailyChart;
 
+function currentFilters() {
+    return {
+        start_date: document.getElementById('startDate').value,
+        end_date: document.getElementById('endDate').value,
+        queue_id: document.getElementById('queueFilter').value,
+        status: document.getElementById('statusFilter').value,
+        priority: document.getElementById('priorityFilter').value
+    };
+}
+
+function filtersQuery() {
+    const params = new URLSearchParams();
+    Object.entries(currentFilters()).forEach(([key, value]) => {
+        if (value) params.set(key, value);
+    });
+    return params.toString();
+}
+
+function applyChartSelection(kind, value, data) {
+    if (kind === 'status') document.getElementById('statusFilter').value = value;
+    if (kind === 'priority') document.getElementById('priorityFilter').value = value;
+    if (kind === 'queue') document.getElementById('queueFilter').value = String(data.queue_ids[value] || '');
+    if (kind === 'day') {
+        const parts = value.split('.');
+        const date = new Date(new Date().getFullYear(), Number(parts[1]) - 1, Number(parts[0]));
+        const iso = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+        document.getElementById('startDate').value = iso;
+        document.getElementById('endDate').value = iso;
+    }
+    applyFilters();
+}
+
 function initCharts(data) {
+    window.statisticsChartData = data;
     Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
     Chart.defaults.font.size = 12;
     Chart.defaults.color = '#64748b';
@@ -179,7 +221,9 @@ function initCharts(data) {
         },
         options: {
             responsive: true, maintainAspectRatio: false, cutout: '72%',
-            plugins: { legend: { position: 'bottom' } }
+            plugins: { legend: { position: 'bottom' } },
+            onClick: (event, elements) => { if (elements.length) applyChartSelection('status', statusChart.data.labels[elements[0].index], data); },
+            onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; }
         }
     });
     
@@ -200,6 +244,8 @@ function initCharts(data) {
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
+            onClick: (event, elements) => { if (elements.length) applyChartSelection('priority', priorityChart.data.labels[elements[0].index], data); },
+            onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
             scales: {
                 x: { grid: { display: false } },
                 y: { beginAtZero: true, grid: { color: '#edf2f0' }, ticks: { precision: 0 } }
@@ -225,6 +271,8 @@ function initCharts(data) {
         options: {
             responsive: true, maintainAspectRatio: false, indexAxis: 'y',
             plugins: { legend: { display: false } },
+            onClick: (event, elements) => { if (elements.length) applyChartSelection('queue', queueChart.data.labels[elements[0].index], data); },
+            onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
             scales: {
                 x: { beginAtZero: true, grid: { color: '#edf2f0' }, ticks: { precision: 0 } },
                 y: { grid: { display: false } }
@@ -257,6 +305,8 @@ function initCharts(data) {
         options: {
             responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
+            onClick: (event, elements) => { if (elements.length) applyChartSelection('day', dailyChart.data.labels[elements[0].index], data); },
+            onHover: (event, elements) => { event.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
             scales: {
                 x: { grid: { display: false } },
                 y: { beginAtZero: true, grid: { color: '#edf2f0' }, ticks: { precision: 0 } }
@@ -267,7 +317,7 @@ function initCharts(data) {
 
 // ===== ЗАГРУЗКА ДАННЫХ =====
 function loadChartData() {
-    fetch('/api/statistics/chart-data')
+    fetch('/api/statistics/chart-data?' + filtersQuery())
         .then(response => response.json())
         .then(data => {
             initCharts(data);
@@ -276,36 +326,14 @@ function loadChartData() {
 
 // ===== ПРИМЕНЕНИЕ ФИЛЬТРОВ =====
 function applyFilters() {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    const queueId = document.getElementById('queueFilter').value;
-    const status = document.getElementById('statusFilter').value;
-    
-    let url = '/api/statistics/chart-data?';
-    if (startDate) url += `start_date=${startDate}&`;
-    if (endDate) url += `end_date=${endDate}&`;
-    if (queueId) url += `queue_id=${queueId}&`;
-    if (status) url += `status=${status}&`;
-    
-    fetch(url)
+    fetch('/api/statistics/chart-data?' + filtersQuery())
         .then(response => response.json())
         .then(data => initCharts(data));
 }
 
 // ===== ЭКСПОРТ В EXCEL =====
 function exportExcel() {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    const queueId = document.getElementById('queueFilter').value;
-    const status = document.getElementById('statusFilter').value;
-    
-    let url = '/api/statistics/export?';
-    if (startDate) url += `start_date=${startDate}&`;
-    if (endDate) url += `end_date=${endDate}&`;
-    if (queueId) url += `queue_id=${queueId}&`;
-    if (status) url += `status=${status}&`;
-    
-    window.location.href = url;
+    window.location.href = '/api/statistics/export?' + filtersQuery();
 }
 
 // ===== ЗАГРУЗКА =====
@@ -343,7 +371,9 @@ window.addEventListener('resize', function() {
 .card-modern .card-header { font-weight:700; color:#26352f; padding:15px 18px; background:#fff; border-bottom:1px solid #edf2ef; }
 .chart-body { height:300px; padding:18px 20px 20px; }
 .chart-body-tall { height:340px; }
-.chart-body canvas { max-width:100%; }
+.chart-body canvas { max-width:100%; cursor:pointer; }
+.chart-card-header::after { content:"Нажмите на элемент графика для фильтрации"; margin-left:auto; color:#94a39b; font-size:.7rem; font-weight:500; }
+@media (max-width:767px) { .chart-card-header::after { width:100%; margin-left:0; } }
 .stats-table-card .card-body { padding:0; }
 .stats-table-card .table-responsive { padding:4px 12px 12px; }
 .table-modern thead th {

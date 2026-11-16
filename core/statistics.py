@@ -26,6 +26,7 @@ def export_statistics():
     end_date = request.args.get('end_date')
     queue_id = request.args.get('queue_id')
     status_filter = request.args.get('status', 'all')
+    priority_filter = request.args.get('priority')
     
     query = Ticket.query
     
@@ -41,6 +42,8 @@ def export_statistics():
             query = query.filter(Ticket.status.in_(['Новая', 'В работе']))
         else:
             query = query.filter(Ticket.status == status_filter)
+    if priority_filter:
+        query = query.filter(Ticket.priority == priority_filter)
     
     tickets = query.all()
     
@@ -103,35 +106,70 @@ def export_statistics():
 @stat_bp.route('/api/statistics/chart-data')
 @login_required
 def chart_data():
-    import json
-    
-    status_data = {}
-    for status in ['Новая', 'В работе', 'Закрыта']:
-        status_data[status] = Ticket.query.filter_by(status=status).count()
-    
-    priority_data = {}
-    for priority in ['Низкий', 'Средний', 'Высокий']:
-        priority_data[priority] = Ticket.query.filter_by(priority=priority).count()
-    
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    queue_id = request.args.get('queue_id')
+    status_filter = request.args.get('status', 'all')
+    priority_filter = request.args.get('priority')
+
+    query = Ticket.query
+    if start_date:
+        query = query.filter(Ticket.created_at >= datetime.strptime(start_date, '%Y-%m-%d'))
+    if end_date:
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1)
+        query = query.filter(Ticket.created_at < end_dt)
+    if queue_id:
+        query = query.filter(Ticket.queue_id == queue_id)
+    if status_filter == 'active':
+        query = query.filter(Ticket.status.in_(['Новая', 'В работе']))
+    elif status_filter != 'all':
+        query = query.filter(Ticket.status == status_filter)
+    if priority_filter:
+        query = query.filter(Ticket.priority == priority_filter)
+
+    tickets = query.all()
+    status_data = {status: 0 for status in ['Новая', 'В работе', 'Закрыта']}
+    priority_data = {priority: 0 for priority in ['Низкий', 'Средний', 'Высокий']}
     queue_data = {}
-    for queue in Queue.query.all():
-        count = len(queue.tickets)
-        if count > 0:
-            queue_data[queue.name] = count
-    
-    daily_data = {}
+    queue_ids = {}
+    for ticket in tickets:
+        if ticket.status in status_data:
+            status_data[ticket.status] += 1
+        if ticket.priority in priority_data:
+            priority_data[ticket.priority] += 1
+        if ticket.queue:
+            queue_data[ticket.queue.name] = queue_data.get(ticket.queue.name, 0) + 1
+            queue_ids[ticket.queue.name] = ticket.queue_id
+
     today = datetime.now().date()
-    for i in range(6, -1, -1):
-        date = today - timedelta(days=i)
-        count = Ticket.query.filter(
-            Ticket.created_at >= datetime.combine(date, datetime.min.time()),
-            Ticket.created_at < datetime.combine(date + timedelta(days=1), datetime.min.time())
+    if start_date or end_date:
+        first_day = datetime.strptime(start_date, '%Y-%m-%d').date() if start_date else (
+            datetime.strptime(end_date, '%Y-%m-%d').date() - timedelta(days=6)
+        )
+        last_day = datetime.strptime(end_date, '%Y-%m-%d').date() if end_date else today
+        if (last_day - first_day).days > 30:
+            first_day = last_day - timedelta(days=30)
+    else:
+        first_day = today - timedelta(days=6)
+        last_day = today
+
+    daily_data = {}
+    for offset in range(max(0, (last_day - first_day).days) + 1):
+        day = first_day + timedelta(days=offset)
+        day_start = datetime.combine(day, datetime.min.time())
+        day_end = day_start + timedelta(days=1)
+        daily_data[day.strftime('%d.%m')] = query.filter(
+            Ticket.created_at >= day_start,
+            Ticket.created_at < day_end
         ).count()
-        daily_data[date.strftime('%d.%m')] = count
-    
+
+    top_queues = dict(sorted(queue_data.items(), key=lambda item: item[1], reverse=True)[:5])
+    top_queue_ids = {name: queue_ids[name] for name in top_queues}
+
     return jsonify({
         'status': status_data,
         'priority': priority_data,
-        'queues': dict(sorted(queue_data.items(), key=lambda x: x[1], reverse=True)[:5]),
+        'queues': top_queues,
+        'queue_ids': top_queue_ids,
         'daily': daily_data
     })
