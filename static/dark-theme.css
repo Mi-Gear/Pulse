@@ -450,3 +450,22 @@ html[data-theme="dark"] .badge-status-new { background: #123b2c !important; colo
 html[data-theme="dark"] .badge-status-work { background: #493718 !important; color: #fbbf24 !important; }
 html[data-theme="dark"] .badge-status-closed { background: #173b2a !important; color: #86efac !important; }
 html[data-theme="dark"] .badge-status-other { background: #304138 !important; color: #bdc9c1 !important; }
+
+html[data-theme="dark"] .user-card-name,
+html[data-theme="dark"] .user-card-position,
+html[data-theme="dark"] .user-card-meta,
+html[data-theme="dark"] .user-card-contact,
+html[data-theme="dark"] .user-card-body {
+    color: #d0dbd4 !important;
+}
+
+html[data-theme="dark"] .user-card-position,
+html[data-theme="dark"] .user-card-meta,
+html[data-theme="dark"] .user-card-contact {
+    color: #9aaca0 !important;
+}
+
+html[data-theme="dark"] .index-sidebar .sidebar {
+    background: #19251e !important;
+    border-color: #304138 !important;
+}
