@@ -1,22 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="stats-hero d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
     <div>
-        <h4 class="mb-0 fw-semibold">
-            <i class="fas fa-chart-bar me-2" style="color: var(--primary);"></i>Статистика
-        </h4>
-        <span class="text-muted small">Аналитика по заявкам</span>
+        <div class="stats-eyebrow"><i class="fas fa-chart-line me-2"></i>ОБЗОР РАБОТЫ СЛУЖБЫ</div>
+        <h1 class="stats-title mb-1">Статистика</h1>
+        <p class="stats-subtitle mb-0">Заявки, нагрузка по очередям и динамика обращений</p>
     </div>
-    <div>
-        <button class="btn btn-success-gradient" onclick="exportExcel()">
-            <i class="fas fa-file-excel me-1"></i> Выгрузить в Excel
-        </button>
-    </div>
+    <button class="btn btn-export" onclick="exportExcel()">
+        <i class="fas fa-file-excel me-2"></i>Выгрузить в Excel
+    </button>
 </div>
 
 <!-- ===== ФИЛЬТРЫ ===== -->
-<div class="card-modern mb-4 animate-fade-in">
+<div class="card-modern stats-filter-card mb-4 animate-fade-in">
+    <div class="card-header stats-section-header">
+        <div><i class="fas fa-sliders-h me-2"></i>Параметры отчёта</div>
+        <span class="stats-hint">Настройте период и состав данных</span>
+    </div>
     <div class="card-body py-3">
         <form id="filterForm" class="row g-3 align-items-end">
             <div class="col-md-3">
@@ -56,9 +57,9 @@
 </div>
 
 <!-- ===== СТАТИСТИКА ПОЛЬЗОВАТЕЛЕЙ ===== -->
-<div class="card-modern">
+<div class="card-modern stats-table-card mb-4">
     <div class="card-header">
-        <i class="fas fa-users me-2" style="color: var(--primary);"></i>Статистика пользователей
+        <i class="fas fa-users me-2" style="color: var(--primary);"></i>Сводка по функциональным очередям
     </div>
     <div class="card-body">
         <div class="table-responsive">
@@ -94,7 +95,7 @@
             <div class="card-header">
                 <i class="fas fa-circle me-2" style="color: var(--primary);"></i>Заявки по статусам
             </div>
-            <div class="card-body" style="height: 535px; align-items:center">
+            <div class="card-body chart-body chart-body-tall">
                 <canvas id="statusChart"></canvas>
             </div>
         </div>
@@ -104,8 +105,8 @@
             <div class="card-header">
                 <i class="fas fa-flag me-2" style="color: var(--primary);"></i>Заявки по приоритетам
             </div>
-            <div class="card-body">
-                <canvas id="priorityChart" height="250"></canvas>
+            <div class="card-body chart-body">
+                <canvas id="priorityChart"></canvas>
             </div>
         </div>
     </div>
@@ -117,8 +118,8 @@
             <div class="card-header">
                 <i class="fas fa-layer-group me-2" style="color: var(--primary);"></i>Заявки по очередям
             </div>
-            <div class="card-body">
-                <canvas id="queueChart" height="200"></canvas>
+            <div class="card-body chart-body">
+                <canvas id="queueChart"></canvas>
             </div>
         </div>
     </div>
@@ -127,8 +128,8 @@
             <div class="card-header">
                 <i class="fas fa-calendar-alt me-2" style="color: var(--primary);"></i>Заявки по дням
             </div>
-            <div class="card-body">
-                <canvas id="dailyChart" height="200"></canvas>
+            <div class="card-body chart-body">
+                <canvas id="dailyChart"></canvas>
             </div>
         </div>
     </div>
@@ -142,6 +143,15 @@
 let statusChart, priorityChart, queueChart, dailyChart;
 
 function initCharts(data) {
+    Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.padding = 18;
+    Chart.defaults.plugins.tooltip.backgroundColor = '#17211f';
+    Chart.defaults.plugins.tooltip.padding = 12;
+    Chart.defaults.plugins.tooltip.cornerRadius = 10;
+
     // Цветовая схема
     const colors = {
         green: '#10b981',
@@ -164,14 +174,12 @@ function initCharts(data) {
             datasets: [{
                 data: Object.values(data.status),
                 backgroundColor: [colors.blue, colors.yellow, colors.green],
-                borderWidth: 0
+                borderWidth: 0, borderRadius: 5, spacing: 3, hoverOffset: 7
             }]
         },
         options: {
-            responsive: true,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
+            responsive: true, maintainAspectRatio: false, cutout: '72%',
+            plugins: { legend: { position: 'bottom' } }
         }
     });
     
@@ -186,16 +194,15 @@ function initCharts(data) {
                 label: 'Заявки',
                 data: Object.values(data.priority),
                 backgroundColor: [colors.green, colors.yellow, colors.red],
-                borderRadius: 4
+                borderRadius: 8, maxBarThickness: 42
             }]
         },
         options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
             scales: {
-                y: { beginAtZero: true }
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, grid: { color: '#edf2f0' }, ticks: { precision: 0 } }
             }
         }
     });
@@ -212,16 +219,15 @@ function initCharts(data) {
                 label: 'Заявки',
                 data: Object.values(data.queues),
                 backgroundColor: queueColors.slice(0, Object.keys(data.queues).length),
-                borderRadius: 4
+                borderRadius: 8, maxBarThickness: 30
             }]
         },
         options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
+            responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+            plugins: { legend: { display: false } },
             scales: {
-                y: { beginAtZero: true }
+                x: { beginAtZero: true, grid: { color: '#edf2f0' }, ticks: { precision: 0 } },
+                y: { grid: { display: false } }
             }
         }
     });
@@ -240,17 +246,20 @@ function initCharts(data) {
                 backgroundColor: colors.green + '20',
                 fill: true,
                 tension: 0.3,
-                pointBackgroundColor: colors.green,
-                pointRadius: 4
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: colors.green,
+                pointBorderWidth: 2,
+                pointHoverRadius: 6,
+                pointRadius: 4,
+                borderWidth: 3
             }]
         },
         options: {
-            responsive: true,
-            plugins: {
-                legend: { display: false }
-            },
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
             scales: {
-                y: { beginAtZero: true }
+                x: { grid: { display: false } },
+                y: { beginAtZero: true, grid: { color: '#edf2f0' }, ticks: { precision: 0 } }
             }
         }
     });
@@ -319,6 +328,24 @@ window.addEventListener('resize', function() {
 </script>
 
 <style>
+.stats-hero { position:relative; overflow:hidden; padding:26px 30px; border:1px solid #dcefe7; border-radius:18px; background:linear-gradient(120deg,#f0fdf7 0%,#fff 72%); }
+.stats-hero::after { content:""; position:absolute; width:190px; height:190px; right:12%; top:-115px; border:26px solid rgba(16,185,129,.06); border-radius:50%; pointer-events:none; }
+.stats-eyebrow { color:#059669; font-size:.68rem; font-weight:800; letter-spacing:.12em; margin-bottom:7px; }
+.stats-title { color:#17211f; font-size:1.8rem; font-weight:750; letter-spacing:-.04em; }
+.stats-subtitle { color:#718078; font-size:.9rem; }
+.btn-export { position:relative; z-index:1; border:0; border-radius:10px; padding:11px 16px; color:#fff; font-size:.86rem; font-weight:650; background:linear-gradient(135deg,#10b981,#047857); box-shadow:0 5px 14px rgba(5,150,105,.18); transition:transform .2s ease,box-shadow .2s ease; }
+.btn-export:hover { color:#fff; transform:translateY(-2px); box-shadow:0 8px 20px rgba(5,150,105,.24); }
+.stats-filter-card,.stats-table-card { border:1px solid #e8eeeb; border-radius:15px; overflow:hidden; box-shadow:0 4px 18px rgba(15,35,28,.035); }
+.stats-section-header { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; font-weight:700; }
+.stats-section-header > div { color:#26352f; }
+.stats-section-header i { color:var(--primary); }
+.stats-hint { color:#94a39b; font-size:.76rem; font-weight:500; }
+.card-modern .card-header { font-weight:700; color:#26352f; padding:15px 18px; background:#fff; border-bottom:1px solid #edf2ef; }
+.chart-body { height:300px; padding:18px 20px 20px; }
+.chart-body-tall { height:340px; }
+.chart-body canvas { max-width:100%; }
+.stats-table-card .card-body { padding:0; }
+.stats-table-card .table-responsive { padding:4px 12px 12px; }
 .table-modern thead th {
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -329,6 +356,14 @@ window.addEventListener('resize', function() {
 .table-modern tbody td {
     padding: 8px 12px;
     font-size: 0.85rem;
+}
+@media (max-width:767px) {
+    .stats-hero { padding:22px 20px; }
+    .stats-title { font-size:1.55rem; }
+    .btn-export { width:100%; }
+    .chart-body { height:270px; padding:14px; }
+    .chart-body-tall { height:300px; }
+    .stats-hint { width:100%; }
 }
 </style>
 {% endblock %}
