@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, abort, send_file
+from flask import Blueprint, render_template, request, flash, redirect, url_for, abort, send_file, current_app
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_
@@ -269,7 +269,7 @@ def import_queue_equipment(queue_id):
         flash(str(exc), "danger")
     except Exception:
         db.session.rollback()
-        q_detail_bp.logger.exception("Ошибка импорта оборудования для очереди %s", queue.id)
+        current_app.logger.exception("Ошибка импорта оборудования для очереди %s", queue.id)
         flash("Не удалось прочитать файл или сохранить данные. Проверьте шаблон и содержимое файла.", "danger")
     finally:
         if "workbook" in locals():
