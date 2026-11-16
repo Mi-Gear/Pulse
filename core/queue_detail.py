@@ -125,6 +125,36 @@ def _equipment_key(value):
     return re.sub(r"\s+", " ", value).strip().casefold() if value else None
 
 
+@q_detail_bp.route('/queue/<int:queue_id>/equipment/<int:equipment_id>/edit', methods=['POST'])
+@login_required
+def edit_queue_equipment(queue_id, equipment_id):
+    queue = Queue.query.get_or_404(queue_id)
+
+    if current_user.role != 0 and current_user not in queue.admins:
+        abort(403)
+
+    item = Equipment.query.filter_by(id=equipment_id, queue_id=queue.id).first_or_404()
+
+    editable_fields = [field for _, field in EQUIPMENT_COLUMNS]
+    try:
+        for field in editable_fields:
+            value = request.form.get(field, '').strip()
+            setattr(item, field, value or None)
+
+        db.session.commit()
+        flash("Данные оборудования обновлены.", "success")
+    except Exception:
+        db.session.rollback()
+        current_app.logger.exception(
+            "Ошибка редактирования оборудования %s в очереди %s",
+            equipment_id,
+            queue.id
+        )
+        flash("Не удалось сохранить изменения оборудования.", "danger")
+
+    return redirect(url_for("queue_detail.queue_equipment", queue_id=queue.id))
+
+
 @q_detail_bp.route('/queue/<int:queue_id>/equipment/template')
 @login_required
 def download_equipment_template(queue_id):
