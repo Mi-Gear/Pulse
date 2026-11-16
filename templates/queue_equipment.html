@@ -57,86 +57,96 @@
                     </thead>
                     <tbody>
                         {% for item in equipment %}
-                            <tr>
-                                <td class="fw-semibold">{{ item.equipment_name or '—' }}</td>
-                                <td>{{ item.model or '—' }}</td>
-                                <td>{{ item.serial_number or '—' }}</td>
-                                <td>{{ item.inventory_number or '—' }}</td>
-                                <td>{{ item.production_year or '—' }}</td>
-                                <td>{{ item.commissioning_year or '—' }}</td>
-                                <td>{{ item.maintenance_period or '—' }}</td>
-                                <td>{{ item.certificate or '—' }}</td>
-                                <td>{{ item.registration_certificate or '—' }}</td>
+                            <tr class="equipment-row">
+                                <td class="fw-semibold">
+                                    <span class="equipment-value">{{ item.equipment_name or '—' }}</span>
+                                    {% if current_user.role == 0 or current_user in queue.admins %}
+                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
+                                               name="equipment_name" form="equipment-form-{{ item.id }}"
+                                               value="{{ item.equipment_name or '' }}" aria-label="Наименование">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="equipment-value">{{ item.model or '—' }}</span>
+                                    {% if current_user.role == 0 or current_user in queue.admins %}
+                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
+                                               name="model" form="equipment-form-{{ item.id }}"
+                                               value="{{ item.model or '' }}" aria-label="Модель">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="equipment-value">{{ item.serial_number or '—' }}</span>
+                                    {% if current_user.role == 0 or current_user in queue.admins %}
+                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
+                                               name="serial_number" form="equipment-form-{{ item.id }}"
+                                               value="{{ item.serial_number or '' }}" aria-label="Заводской номер">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="equipment-value">{{ item.inventory_number or '—' }}</span>
+                                    {% if current_user.role == 0 or current_user in queue.admins %}
+                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
+                                               name="inventory_number" form="equipment-form-{{ item.id }}"
+                                               value="{{ item.inventory_number or '' }}" aria-label="Инвентарный номер">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="equipment-value">{{ item.production_year or '—' }}</span>
+                                    {% if current_user.role == 0 or current_user in queue.admins %}
+                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
+                                               name="production_year" form="equipment-form-{{ item.id }}"
+                                               value="{{ item.production_year or '' }}" aria-label="Год выпуска">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="equipment-value">{{ item.commissioning_year or '—' }}</span>
+                                    {% if current_user.role == 0 or current_user in queue.admins %}
+                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
+                                               name="commissioning_year" form="equipment-form-{{ item.id }}"
+                                               value="{{ item.commissioning_year or '' }}" aria-label="Год ввода">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="equipment-value">{{ item.maintenance_period or '—' }}</span>
+                                    {% if current_user.role == 0 or current_user in queue.admins %}
+                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
+                                               name="maintenance_period" form="equipment-form-{{ item.id }}"
+                                               value="{{ item.maintenance_period or '' }}" aria-label="Период обслуживания">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="equipment-value">{{ item.certificate or '—' }}</span>
+                                    {% if current_user.role == 0 or current_user in queue.admins %}
+                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
+                                               name="certificate" form="equipment-form-{{ item.id }}"
+                                               value="{{ item.certificate or '' }}" aria-label="Сертификат">
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="equipment-value">{{ item.registration_certificate or '—' }}</span>
+                                    {% if current_user.role == 0 or current_user in queue.admins %}
+                                        <input class="form-control form-control-sm equipment-editor d-none" type="text"
+                                               name="registration_certificate" form="equipment-form-{{ item.id }}"
+                                               value="{{ item.registration_certificate or '' }}" aria-label="Регистрационное удостоверение">
+                                    {% endif %}
+                                </td>
                                 {% if current_user.role == 0 or current_user in queue.admins %}
-                                    <td class="text-end">
-                                        <button class="btn btn-outline-modern btn-sm" type="button"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target="#equipment-edit-{{ item.id }}"
-                                                aria-expanded="false"
-                                                aria-controls="equipment-edit-{{ item.id }}">
+                                    <td class="text-end text-nowrap">
+                                        <form id="equipment-form-{{ item.id }}" method="post"
+                                              action="{{ url_for('queue_detail.edit_queue_equipment', queue_id=queue.id, equipment_id=item.id) }}"></form>
+                                        <button type="button" class="btn btn-outline-modern btn-sm equipment-edit-btn">
                                             <i class="fas fa-pen me-1"></i> Изменить
+                                        </button>
+                                        <button type="submit" form="equipment-form-{{ item.id }}"
+                                                class="btn btn-primary btn-sm equipment-save-btn d-none">
+                                            <i class="fas fa-save me-1"></i> Сохранить
+                                        </button>
+                                        <button type="button" class="btn btn-outline-modern btn-sm equipment-cancel-btn d-none">
+                                            Отмена
                                         </button>
                                     </td>
                                 {% endif %}
                             </tr>
-                            {% if current_user.role == 0 or current_user in queue.admins %}
-                                <tr class="collapse" id="equipment-edit-{{ item.id }}">
-                                    <td colspan="10">
-                                        <form method="post"
-                                              action="{{ url_for('queue_detail.edit_queue_equipment', queue_id=queue.id, equipment_id=item.id) }}"
-                                              class="p-3 rounded" style="background: var(--gray-100, #f8f9fa);">
-                                            <div class="row g-3">
-                                                <div class="col-md-6">
-                                                    <label class="form-label small">Наименование</label>
-                                                    <input class="form-control" name="equipment_name" value="{{ item.equipment_name or '' }}">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label small">Модель</label>
-                                                    <input class="form-control" name="model" value="{{ item.model or '' }}">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label small">Заводской номер</label>
-                                                    <input class="form-control" name="serial_number" value="{{ item.serial_number or '' }}">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label small">Инвентарный номер</label>
-                                                    <input class="form-control" name="inventory_number" value="{{ item.inventory_number or '' }}">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label small">Год выпуска</label>
-                                                    <input class="form-control" name="production_year" value="{{ item.production_year or '' }}">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label small">Год ввода в эксплуатацию</label>
-                                                    <input class="form-control" name="commissioning_year" value="{{ item.commissioning_year or '' }}">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label small">Период обслуживания</label>
-                                                    <input class="form-control" name="maintenance_period" value="{{ item.maintenance_period or '' }}">
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <label class="form-label small">Сертификат</label>
-                                                    <input class="form-control" name="certificate" value="{{ item.certificate or '' }}">
-                                                </div>
-                                                <div class="col-md-12">
-                                                    <label class="form-label small">Регистрационное удостоверение</label>
-                                                    <input class="form-control" name="registration_certificate" value="{{ item.registration_certificate or '' }}">
-                                                </div>
-                                            </div>
-                                            <div class="d-flex justify-content-end gap-2 mt-3">
-                                                <button type="button" class="btn btn-outline-modern btn-sm"
-                                                        data-bs-toggle="collapse"
-                                                        data-bs-target="#equipment-edit-{{ item.id }}">
-                                                    Отмена
-                                                </button>
-                                                <button type="submit" class="btn btn-primary btn-sm">
-                                                    <i class="fas fa-save me-1"></i> Сохранить
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </td>
-                                </tr>
-                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
@@ -150,4 +160,29 @@
         {% endif %}
     </div>
 </div>
+
+{% if current_user.role == 0 or current_user in queue.admins %}
+<script>
+document.addEventListener('click', function (event) {
+    const editButton = event.target.closest('.equipment-edit-btn');
+    const cancelButton = event.target.closest('.equipment-cancel-btn');
+
+    if (!editButton && !cancelButton) return;
+
+    const row = (editButton || cancelButton).closest('.equipment-row');
+    const editing = Boolean(editButton);
+
+    row.querySelectorAll('.equipment-value').forEach(el => el.classList.toggle('d-none', editing));
+    row.querySelectorAll('.equipment-editor').forEach(el => {
+        el.classList.toggle('d-none', !editing);
+        if (editing) el.dataset.originalValue = el.value;
+        else el.value = el.dataset.originalValue ?? el.value;
+    });
+    row.querySelector('.equipment-edit-btn').classList.toggle('d-none', editing);
+    row.querySelector('.equipment-save-btn').classList.toggle('d-none', !editing);
+    row.querySelector('.equipment-cancel-btn').classList.toggle('d-none', !editing);
+});
+</script>
+{% endif %}
+
 {% endblock %}
