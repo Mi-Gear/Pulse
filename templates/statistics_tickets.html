@@ -37,6 +37,7 @@
                 <label class="form-label-modern small">Статус</label>
                 <select class="form-select-modern" name="status">
                     <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Все</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Активные</option>
                     <option value="Новая" {% if status_filter == 'Новая' %}selected{% endif %}>Новая</option>
                     <option value="В работе" {% if status_filter == 'В работе' %}selected{% endif %}>В работе</option>
                     <option value="Закрыта" {% if status_filter == 'Закрыта' %}selected{% endif %}>Закрыта</option>
