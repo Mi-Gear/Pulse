@@ -26,7 +26,6 @@ def login():
         if authenticate_ad(username, password):
             login_user(user)
 
-            flash('Вы успешно вошли!', 'success')
             return redirect(url_for('index'))
 
         # 2. Если AD не подтвердил пароль,
@@ -34,7 +33,6 @@ def login():
         if user.password and check_password_hash(user.password, password):
             login_user(user)
 
-            flash('Вы успешно вошли!', 'success')
             return redirect(url_for('index'))
 
         # 3. Оба варианта не подошли
