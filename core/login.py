@@ -22,20 +22,17 @@ def login():
             flash('Неверное имя пользователя или пароль', 'danger')
             return render_template('login.html')
 
-        # 1. Сначала проверяем учётные данные в AD
-        if authenticate_ad(username, password):
-            login_user(user)
-
-            return redirect(url_for('index'))
-
-        # 2. Если AD не подтвердил пароль,
-        # проверяем старый пароль из БД
+        # 1. Сначала проверяем пароль, сохранённый в базе данных
         if user.password and check_password_hash(user.password, password):
             login_user(user)
-
             return redirect(url_for('index'))
 
-        # 3. Оба варианта не подошли
+        # 2. Если пароль из БД не подошёл, пробуем авторизацию через AD
+        if authenticate_ad(username, password):
+            login_user(user)
+            return redirect(url_for('index'))
+
+        # 3. Ни один способ авторизации не подтвердил пароль
         flash('Неверное имя пользователя или пароль', 'danger')
 
     return render_template('login.html')
