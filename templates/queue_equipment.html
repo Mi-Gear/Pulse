@@ -15,13 +15,13 @@
         </div>
         <div class="text-muted small mt-1">{{ queue.name }}</div>
     </div>
-    <div class="d-flex align-items-center flex-wrap gap-2">
+    <div class="d-flex align-items-center flex-wrap gap-2 equipment-page-actions">
         <a href="{{ url_for('queue_detail.download_equipment_template', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
             <i class="fas fa-file-excel me-1"></i> Скачать шаблон
         </a>
         <form id="equipment-import-form" action="{{ url_for('queue_detail.import_queue_equipment', queue_id=queue.id) }}" method="POST" enctype="multipart/form-data">
             <input id="equipment-import-file" type="file" name="file" accept=".xlsx" class="d-none" required onchange="if (this.files.length) this.form.submit();">
-            <button type="button" class="btn btn-primary btn-sm" onclick="document.getElementById('equipment-import-file').click();">
+            <button type="button" class="btn btn-primary-gradient btn-sm" onclick="document.getElementById('equipment-import-file').click();">
                 <i class="fas fa-upload me-1"></i> Импортировать
             </button>
         </form>
@@ -84,12 +84,38 @@
         min-width: 105px;
         max-width: 190px;
     }
+    .equipment-page-actions .btn {
+        padding: .45rem .85rem;
+        border-radius: 10px;
+        font-size: .82rem;
+        font-weight: 650;
+    }
+    .equipment-page-actions .btn-outline-modern {
+        background: #fff;
+        border-color: #e3ebe6;
+        color: #53645a;
+    }
+    .equipment-page-actions .btn-outline-modern:hover {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        color: var(--primary-dark);
+    }
     .equipment-table .equipment-edit-btn {
-        color: var(--bs-secondary-color, #74808b);
+        min-width: 32px;
+        border-radius: 8px;
+        color: #718078;
         text-decoration: none;
     }
     .equipment-table .equipment-edit-btn:hover {
-        color: var(--primary, #198754);
+        color: var(--primary-dark);
+    }
+    .equipment-table .equipment-save-btn,
+    .equipment-table .equipment-cancel-btn,
+    #equipment-bulk-actions .btn {
+        padding: .38rem .7rem;
+        border-radius: 9px;
+        font-size: .78rem;
+        font-weight: 650;
     }
     @media (max-width: 767.98px) {
         .equipment-table tbody td { padding: 11px 10px; }
@@ -100,7 +126,7 @@
     <form id="equipment-delete-form" method="POST" action="{{ url_for('queue_detail.delete_queue_equipment', queue_id=queue.id) }}" onsubmit="return confirm('Удалить выбранные записи оборудования?');"></form>
     <div id="equipment-bulk-actions" class="d-none align-items-center gap-2 mb-2">
         <span class="small text-muted" id="equipment-selected-count">Выбрано: 0</span>
-        <button type="submit" form="equipment-delete-form" class="btn btn-danger btn-sm"><i class="fas fa-trash me-1"></i> Удалить выбранное</button>
+        <button type="submit" form="equipment-delete-form" class="btn btn-danger-gradient btn-sm"><i class="fas fa-trash me-1"></i> Удалить выбранное</button>
     </div>
 {% endif %}
 {% if equipment %}
@@ -182,8 +208,8 @@
                         {% if current_user.role == 0 or current_user in queue.admins %}
                         <td class="text-end text-nowrap">
                             <form id="equipment-form-{{ item.id }}" method="POST" action="{{ url_for('queue_detail.edit_queue_equipment', queue_id=queue.id, equipment_id=item.id) }}"></form>
-                            <button type="button" class="btn btn-link btn-sm text-muted p-1 equipment-edit-btn" title="Изменить" aria-label="Изменить"><i class="fas fa-pen"></i></button>
-                            <button type="submit" form="equipment-form-{{ item.id }}" class="btn btn-primary btn-sm equipment-save-btn d-none"><i class="fas fa-save me-1"></i> Сохранить</button>
+                            <button type="button" class="btn btn-outline-modern btn-sm p-1 equipment-edit-btn" title="Изменить" aria-label="Изменить"><i class="fas fa-pen"></i></button>
+                            <button type="submit" form="equipment-form-{{ item.id }}" class="btn btn-primary-gradient btn-sm equipment-save-btn d-none"><i class="fas fa-save me-1"></i> Сохранить</button>
                             <button type="button" class="btn btn-outline-modern btn-sm equipment-cancel-btn d-none">Отмена</button>
                         </td>
                         {% endif %}
