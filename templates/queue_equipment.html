@@ -60,7 +60,14 @@
         border-bottom: 1px solid var(--bs-border-color, #e8edf0);
         transition: background-color .15s ease, box-shadow .15s ease;
     }
-    .equipment-table.has-selection tbody td:first-child {\n        width: 38px;\n        text-align: center;\n        border-left: 1px solid var(--bs-border-color, #e8edf0);\n        border-radius: 10px 0 0 10px;\n    }\n    .equipment-table:not(.has-selection) tbody td:first-child,\n    .equipment-table.has-selection tbody td:nth-child(2) {
+    .equipment-table.has-selection tbody td:first-child {
+        width: 38px;
+        min-width: 38px;
+        text-align: center;
+        border-left: 3px solid var(--primary, #198754);
+        border-radius: 10px 0 0 10px;
+    }
+    .equipment-table:not(.has-selection) tbody td:first-child {
         border-left: 3px solid var(--primary, #198754);
         border-radius: 10px 0 0 10px;
         font-weight: 600;
