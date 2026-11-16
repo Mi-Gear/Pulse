@@ -111,7 +111,7 @@ def _git(*args, timeout=120):
         )
 
     auth = base64.b64encode(
-        f"x-access-token:{GITHUB_TOKEN}".encode("utf-8")
+        f"Mi-Gear:{GITHUB_TOKEN}".encode("utf-8")
     ).decode("ascii")
     command += [
         "-c",
@@ -234,7 +234,7 @@ def run_supervisor():
 
         try:
             new_sha = _fetch_latest()
-        except (OSError, subprocess.SubprocessError) as exc:
+        except (OSError, subprocess.SubprocessError, RuntimeError) as exc:
             print(f"[UPDATE] Ошибка проверки GitHub: {exc}", flush=True)
             new_sha = None
 
