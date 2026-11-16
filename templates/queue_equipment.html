@@ -108,7 +108,7 @@
                         {% if current_user.role == 0 or current_user in queue.admins %}
                         <td class="text-end text-nowrap">
                             <form id="equipment-form-{{ item.id }}" method="POST" action="{{ url_for('queue_detail.edit_queue_equipment', queue_id=queue.id, equipment_id=item.id) }}"></form>
-                            <button type="button" class="btn btn-outline-modern btn-sm equipment-edit-btn"><i class="fas fa-pen me-1"></i> Изменить</button>
+                            <button type="button" class="btn btn-link btn-sm text-muted p-1 equipment-edit-btn" title="Изменить" aria-label="Изменить"><i class="fas fa-pen"></i></button>
                             <button type="submit" form="equipment-form-{{ item.id }}" class="btn btn-primary btn-sm equipment-save-btn d-none"><i class="fas fa-save me-1"></i> Сохранить</button>
                             <button type="button" class="btn btn-outline-modern btn-sm equipment-cancel-btn d-none">Отмена</button>
                         </td>
