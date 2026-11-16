@@ -62,7 +62,8 @@ a:hover { color: var(--primary-hover); }
     display: flex;
     align-items: center;
 }
-.navbar-custom .navbar-brand i { color: var(--primary); margin-right: 8px; font-size: 1.2rem; }
+.navbar-custom .navbar-brand i,
+.navbar-custom .navbar-brand svg.svg-inline--fa { color: var(--primary); margin-right: 8px; font-size: 1.2rem; }
 .navbar-custom .nav-link {
     color: var(--gray-500) !important;
     font-size: 0.9rem;
@@ -79,7 +80,8 @@ a:hover { color: var(--primary-hover); }
     color: var(--gray-900) !important;
     border-bottom-color: var(--primary);
 }
-.navbar-custom .nav-link i { margin-right: 8px; font-size: 0.95rem; }
+.navbar-custom .nav-link i,
+.navbar-custom .nav-link svg.svg-inline--fa { margin-right: 8px; font-size: 0.95rem; }
 .navbar-custom .dropdown-menu {
     border: 1px solid var(--gray-200);
     border-radius: var(--radius);
@@ -97,7 +99,8 @@ a:hover { color: var(--primary-hover); }
     background: var(--primary-light);
     color: var(--primary);
 }
-.navbar-custom .dropdown-item i { width: 18px; margin-right: 10px; color: var(--gray-400); }
+.navbar-custom .dropdown-item i,
+.navbar-custom .dropdown-item svg.svg-inline--fa { width: 18px; margin-right: 10px; color: var(--gray-400); }
 
 .user-badge {
     font-size: 0.85rem;
@@ -110,7 +113,8 @@ a:hover { color: var(--primary-hover); }
     align-items: center;
     gap: 6px;
 }
-.user-badge i { color: var(--gray-400); }
+.user-badge i,
+.user-badge svg.svg-inline--fa { color: var(--gray-400); }
 
 .btn-logout {
     color: var(--gray-500) !important;
@@ -394,7 +398,8 @@ a:hover { color: var(--primary-hover); }
     text-align: center;
     margin-bottom: 24px;
 }
-.login-card .login-logo i { font-size: 2.5rem; color: var(--primary); }
+.login-card .login-logo i,
+.login-card .login-logo svg.svg-inline--fa { font-size: 2.5rem; color: var(--primary); }
 .login-card .login-logo h4 {
     font-weight: 600;
     margin-top: 8px;
