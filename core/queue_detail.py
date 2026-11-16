@@ -122,7 +122,7 @@ def _equipment_value(value):
 
 def _equipment_key(value):
     value = _equipment_value(value)
-    return re.sub(r"\\s+", " ", value).strip().casefold() if value else None
+    return re.sub(r"\s+", " ", value).strip().casefold() if value else None
 
 
 @q_detail_bp.route('/queue/<int:queue_id>/equipment/template')
