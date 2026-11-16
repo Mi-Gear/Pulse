@@ -248,7 +248,6 @@ class Equipment(db.Model):
     queue_id = db.Column(db.Integer, db.ForeignKey('queue.id'), nullable=True, index=True)
     queue = db.relationship('Queue', backref=db.backref('equipment', lazy=True))
 
-    source_sheet = db.Column(db.Text, nullable=True)
 
     def __repr__(self):
         return f'<Equipment {self.inventory_number or self.serial_number}>'
