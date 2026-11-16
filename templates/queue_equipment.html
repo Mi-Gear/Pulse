@@ -60,7 +60,7 @@
         border-bottom: 1px solid var(--bs-border-color, #e8edf0);
         transition: background-color .15s ease, box-shadow .15s ease;
     }
-    .equipment-table tbody td:first-child {\n        width: 38px;\n        text-align: center;\n        border-left: 1px solid var(--bs-border-color, #e8edf0);\n        border-radius: 10px 0 0 10px;\n    }\n    .equipment-table tbody td:nth-child(2) {
+    .equipment-table.has-selection tbody td:first-child {\n        width: 38px;\n        text-align: center;\n        border-left: 1px solid var(--bs-border-color, #e8edf0);\n        border-radius: 10px 0 0 10px;\n    }\n    .equipment-table:not(.has-selection) tbody td:first-child,\n    .equipment-table.has-selection tbody td:nth-child(2) {
         border-left: 3px solid var(--primary, #198754);
         border-radius: 10px 0 0 10px;
         font-weight: 600;
@@ -98,7 +98,7 @@
 {% endif %}
 {% if equipment %}
     <div class="equipment-list">
-        <table class="table equipment-table align-middle mb-0">
+        <table class="table equipment-table align-middle mb-0{% if current_user.role == 0 or current_user in queue.admins %} has-selection{% endif %}">
             <thead class="table-light">
                 <tr>
                     {% if current_user.role == 0 or current_user in queue.admins %}<th class="text-center"><input class="form-check-input" type="checkbox" id="equipment-select-all" aria-label="Выбрать все строки"></th>{% endif %}
