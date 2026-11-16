@@ -34,24 +34,134 @@
     </div>
 </div>
 
-<div class="card-modern">
-    <div class="card-body">
+
+<style>
+    .equipment-card {
+        overflow: hidden;
+        border: 1px solid var(--gray-200, #e5e7eb);
+        border-radius: 14px;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, .045);
+    }
+    .equipment-table-wrap {
+        max-height: calc(100vh - 280px);
+        min-height: 220px;
+    }
+    .equipment-table {
+        min-width: 1320px;
+        color: var(--gray-700, #374151);
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: .875rem;
+    }
+    .equipment-table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        padding: 15px 14px;
+        background: #f7faf9;
+        color: #64748b;
+        border-bottom: 1px solid #e5eae8;
+        font-size: .72rem;
+        font-weight: 700;
+        letter-spacing: .045em;
+        line-height: 1.35;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+    .equipment-table tbody td {
+        padding: 14px;
+        border-bottom: 1px solid #edf1ef;
+        vertical-align: middle;
+        line-height: 1.45;
+        background: #fff;
+        transition: background-color .15s ease;
+    }
+    .equipment-table tbody tr:nth-child(even) td {
+        background: #fbfcfc;
+    }
+    .equipment-table tbody tr.equipment-row:hover td {
+        background: #f1faf6;
+    }
+    .equipment-table tbody tr:last-child td {
+        border-bottom: 0;
+    }
+    .equipment-table .equipment-name-col {
+        min-width: 230px;
+    }
+    .equipment-table .equipment-actions-col {
+        min-width: 190px;
+        padding-right: 18px;
+    }
+    .equipment-table .equipment-row td:first-child {
+        color: #1f2937;
+        font-weight: 600;
+    }
+    .equipment-number {
+        display: inline-block;
+        padding: 4px 8px;
+        border: 1px solid #e8eeeb;
+        border-radius: 6px;
+        background: #f8faf9;
+        color: #475569;
+        font-size: .82rem;
+        white-space: nowrap;
+    }
+    .equipment-year {
+        color: #475569;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+    .equipment-table .equipment-editor {
+        min-width: 110px;
+        padding: 6px 8px;
+        border-color: #a7d9c4;
+        border-radius: 7px;
+        font-size: .82rem;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, .07);
+    }
+    .equipment-table .equipment-editor:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, .14);
+    }
+    .equipment-table .btn {
+        border-radius: 7px;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .equipment-table .equipment-save-btn {
+        box-shadow: 0 2px 7px rgba(16, 185, 129, .18);
+    }
+    @media (max-width: 767.98px) {
+        .equipment-table-wrap {
+            max-height: none;
+        }
+        .equipment-table thead th {
+            padding: 12px 10px;
+        }
+        .equipment-table tbody td {
+            padding: 11px 10px;
+        }
+    }
+</style>
+
+<div class="card-modern equipment-card">
+    <div class="card-body p-0">
         {% if equipment %}
-            <div class="table-responsive">
-                <table class="table align-middle">
+            <div class="table-responsive equipment-table-wrap">
+                <table class="table equipment-table align-middle mb-0">
                     <thead>
                         <tr>
-                            <th>Наименование</th>
-                            <th>Модель</th>
-                            <th>Заводской номер</th>
-                            <th>Инвентарный номер</th>
-                            <th>Год выпуска</th>
-                            <th>Год ввода</th>
-                            <th>Период обслуживания</th>
-                            <th>Сертификат</th>
-                            <th>Регистрационное удостоверение</th>
+                            <th scope="col" class="equipment-name-col">Наименование</th>
+                            <th scope="col">Модель</th>
+                            <th scope="col">Заводской номер</th>
+                            <th scope="col">Инвентарный номер</th>
+                            <th scope="col">Год выпуска</th>
+                            <th scope="col">Год ввода</th>
+                            <th scope="col">Период обслуживания</th>
+                            <th scope="col">Сертификат</th>
+                            <th scope="col">Регистрационное удостоверение</th>
                             {% if current_user.role == 0 or current_user in queue.admins %}
-                                <th class="text-end">Действия</th>
+                                <th scope="col" class="text-end equipment-actions-col">Действия</th>
                             {% endif %}
                         </tr>
                     </thead>
@@ -75,7 +185,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="equipment-value">{{ item.serial_number or '—' }}</span>
+                                    <span class="equipment-value equipment-number">{{ item.serial_number or '—' }}</span>
                                     {% if current_user.role == 0 or current_user in queue.admins %}
                                         <input class="form-control form-control-sm equipment-editor d-none" type="text"
                                                name="serial_number" form="equipment-form-{{ item.id }}"
@@ -83,7 +193,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="equipment-value">{{ item.inventory_number or '—' }}</span>
+                                    <span class="equipment-value equipment-number">{{ item.inventory_number or '—' }}</span>
                                     {% if current_user.role == 0 or current_user in queue.admins %}
                                         <input class="form-control form-control-sm equipment-editor d-none" type="text"
                                                name="inventory_number" form="equipment-form-{{ item.id }}"
@@ -91,7 +201,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="equipment-value">{{ item.production_year or '—' }}</span>
+                                    <span class="equipment-value equipment-year">{{ item.production_year or '—' }}</span>
                                     {% if current_user.role == 0 or current_user in queue.admins %}
                                         <input class="form-control form-control-sm equipment-editor d-none" type="text"
                                                name="production_year" form="equipment-form-{{ item.id }}"
@@ -99,7 +209,7 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <span class="equipment-value">{{ item.commissioning_year or '—' }}</span>
+                                    <span class="equipment-value equipment-year">{{ item.commissioning_year or '—' }}</span>
                                     {% if current_user.role == 0 or current_user in queue.admins %}
                                         <input class="form-control form-control-sm equipment-editor d-none" type="text"
                                                name="commissioning_year" form="equipment-form-{{ item.id }}"
@@ -134,7 +244,7 @@
                                     <td class="text-end text-nowrap">
                                         <form id="equipment-form-{{ item.id }}" method="post"
                                               action="{{ url_for('queue_detail.edit_queue_equipment', queue_id=queue.id, equipment_id=item.id) }}"></form>
-                                        <button type="button" class="btn btn-outline-modern btn-sm equipment-edit-btn">
+                                        <button type="button" class="btn btn-outline-modern btn-sm equipment-edit-btn" title="Редактировать запись">
                                             <i class="fas fa-pen me-1"></i> Изменить
                                         </button>
                                         <button type="submit" form="equipment-form-{{ item.id }}"
