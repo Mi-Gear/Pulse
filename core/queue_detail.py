@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for,
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import or_
-from models import db, User, Ticket, Queue
+from models import db, User, Ticket, Queue, Equipment
 from config import TIMEZONES
 
 q_detail_bp = Blueprint("queue_detail",__name__)
@@ -70,3 +70,22 @@ def queue_detail(queue_id):
                          search_query=search,
                          priority_filter=priority,
                          assignee_filter=assignee)
+
+@q_detail_bp.route('/queue/<int:queue_id>/equipment')
+@login_required
+def queue_equipment(queue_id):
+    queue = Queue.query.get_or_404(queue_id)
+
+    if current_user.role != 0 and current_user not in queue.admins and current_user not in queue.members:
+        abort(403)
+
+    equipment = Equipment.query.filter_by(queue_id=queue.id).order_by(
+        Equipment.equipment_name.asc(),
+        Equipment.id.asc()
+    ).all()
+
+    return render_template(
+        'queue_equipment.html',
+        queue=queue,
+        equipment=equipment
+    )

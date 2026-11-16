@@ -243,6 +243,10 @@ class Equipment(db.Model):
 
     certificate = db.Column(db.Text, nullable=True)
     registration_certificate = db.Column(db.Text, nullable=True)
+    maintenance_period = db.Column(db.Text, nullable=True)
+
+    queue_id = db.Column(db.Integer, db.ForeignKey('queue.id'), nullable=True, index=True)
+    queue = db.relationship('Queue', backref=db.backref('equipment', lazy=True))
 
     source_sheet = db.Column(db.Text, nullable=True)
 
