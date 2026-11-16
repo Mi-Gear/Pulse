@@ -8,59 +8,56 @@
             <span class="mx-1">/</span>
             {{ queue.name }}
         </div>
-        <h4 class="mb-1 fw-semibold">
-            <i class="fas fa-laptop-medical me-2" style="color: var(--primary);"></i>
-            Оборудование
-        </h4>
-        <span class="text-muted small">{{ queue.name }} · {{ equipment|length }} записей</span>
+        <div class="d-flex align-items-center gap-2">
+            <i class="fas fa-laptop-medical" style="color: var(--primary);"></i>
+            <h4 class="mb-0 fw-semibold">Оборудование</h4>
+            <span class="badge rounded-pill bg-light text-secondary border">{{ equipment|length }}</span>
+        </div>
+        <div class="text-muted small mt-1">{{ queue.name }}</div>
     </div>
     <a href="{{ url_for('queue_detail.queue_detail', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
         <i class="fas fa-arrow-left me-1"></i> К очереди
     </a>
 </div>
 
-<div class="card-modern">
-    <div class="card-body">
-        {% if equipment %}
-            <div class="table-responsive">
-                <table class="table align-middle">
-                    <thead>
-                        <tr>
-                            <th>Наименование</th>
-                            <th>Модель</th>
-                            <th>Заводской номер</th>
-                            <th>Инвентарный номер</th>
-                            <th>Год выпуска</th>
-                            <th>Год ввода</th>
-                            <th>Период обслуживания</th>
-                            <th>Сертификат</th>
-                            <th>Регистрационное удостоверение</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for item in equipment %}
-                            <tr>
-                                <td class="fw-semibold">{{ item.equipment_name or '—' }}</td>
-                                <td>{{ item.model or '—' }}</td>
-                                <td>{{ item.serial_number or '—' }}</td>
-                                <td>{{ item.inventory_number or '—' }}</td>
-                                <td>{{ item.production_year or '—' }}</td>
-                                <td>{{ item.commissioning_year or '—' }}</td>
-                                <td>{{ item.maintenance_period or '—' }}</td>
-                                <td>{{ item.certificate or '—' }}</td>
-                                <td>{{ item.registration_certificate or '—' }}</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <div class="text-center py-5">
-                <i class="fas fa-box-open mb-3" style="font-size: 2rem; color: var(--gray-400);"></i>
-                <h5 class="fw-semibold">Оборудование не найдено</h5>
-                <p class="text-muted mb-0">Для этой очереди пока нет записей в базе данных.</p>
-            </div>
-        {% endif %}
+{% if equipment %}
+    <div class="table-responsive rounded-3 border shadow-sm" style="background: var(--bs-body-bg, #fff);">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th class="px-3 py-3">Наименование</th>
+                    <th class="py-3">Модель</th>
+                    <th class="py-3">Заводской номер</th>
+                    <th class="py-3">Инвентарный номер</th>
+                    <th class="py-3">Год выпуска</th>
+                    <th class="py-3">Год ввода</th>
+                    <th class="py-3">Период обслуживания</th>
+                    <th class="py-3">Сертификат</th>
+                    <th class="py-3 pe-3">Регистрационное удостоверение</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in equipment %}
+                    <tr>
+                        <td class="px-3 fw-semibold">{{ item.equipment_name or '—' }}</td>
+                        <td>{{ item.model or '—' }}</td>
+                        <td class="text-nowrap">{{ item.serial_number or '—' }}</td>
+                        <td class="text-nowrap">{{ item.inventory_number or '—' }}</td>
+                        <td class="text-nowrap">{{ item.production_year or '—' }}</td>
+                        <td class="text-nowrap">{{ item.commissioning_year or '—' }}</td>
+                        <td>{{ item.maintenance_period or '—' }}</td>
+                        <td>{{ item.certificate or '—' }}</td>
+                        <td class="pe-3">{{ item.registration_certificate or '—' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
-</div>
+{% else %}
+    <div class="border rounded-3 text-center py-5 px-3">
+        <i class="fas fa-box-open mb-3" style="font-size: 2rem; color: var(--gray-400);"></i>
+        <h5 class="fw-semibold">Оборудование не найдено</h5>
+        <p class="text-muted mb-0">Для этой очереди пока нет записей в базе данных.</p>
+    </div>
+{% endif %}
 {% endblock %}
