@@ -14,9 +14,22 @@
         </h4>
         <span class="text-muted small">{{ queue.name }} · {{ equipment|length }} записей</span>
     </div>
-    <a href="{{ url_for('queue_detail.queue_detail', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
-        <i class="fas fa-arrow-left me-1"></i> К очереди
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{{ url_for('queue_detail.download_equipment_template', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
+            <i class="fas fa-file-download me-1"></i> Скачать шаблон импорта
+        </a>
+        {% if current_user.role == 0 or current_user in queue.admins %}
+            <form method="post" action="{{ url_for('queue_detail.import_queue_equipment', queue_id=queue.id) }}" enctype="multipart/form-data" class="d-flex flex-wrap gap-2">
+                <input type="file" name="file" accept=".xlsx" class="form-control form-control-sm" required style="max-width: 260px;">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="fas fa-file-import me-1"></i> Импортировать
+                </button>
+            </form>
+        {% endif %}
+        <a href="{{ url_for('queue_detail.queue_detail', queue_id=queue.id) }}" class="btn btn-outline-modern btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> К очереди
+        </a>
+    </div>
 </div>
 
 <div class="card-modern">
