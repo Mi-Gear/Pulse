@@ -544,17 +544,13 @@
                 const rect = track.getBoundingClientRect();
                 const x = rect.left + rect.width / 2;
                 const y = rect.top + rect.height / 2;
-                const radius = Math.hypot(
-                    Math.max(x, window.innerWidth - x),
-                    Math.max(y, window.innerHeight - y)
-                );
 
                 if (activeOverlay) {
                     activeOverlay.remove();
                     activeOverlay = null;
                 }
 
-                if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || !document.documentElement.animate) {
+                if (window.matchMedia("(prefers-reduced-motion: reduce)").matches || typeof Element.prototype.animate !== "function") {
                     applyTheme(theme);
                     return;
                 }
@@ -563,29 +559,46 @@
                 overlay.setAttribute("aria-hidden", "true");
                 Object.assign(overlay.style, {
                     position: "fixed",
-                    inset: "0",
-                    zIndex: "20000",
+                    width: "300vmax",
+                    height: "300vmax",
+                    left: x + "px",
+                    top: y + "px",
+                    borderRadius: "50%",
+                    zIndex: "2147483647",
                     pointerEvents: "none",
-                    background: isDark ? "#121b16" : "#f5f8f6",
-                    clipPath: "circle(0px at " + x + "px " + y + "px)"
+                    backgroundColor: isDark ? "#121b16" : "#f5f8f6",
+                    transform: "translate(-50%, -50%) scale(0)",
+                    transformOrigin: "center center",
+                    willChange: "transform"
                 });
                 document.body.appendChild(overlay);
                 activeOverlay = overlay;
 
-                const animation = overlay.animate(
-                    [
-                        { clipPath: "circle(0px at " + x + "px " + y + "px)" },
-                        { clipPath: "circle(" + radius + "px at " + x + "px " + y + "px)" }
-                    ],
-                    { duration: 720, easing: "cubic-bezier(.7, 0, .2, 1)", fill: "forwards" }
-                );
-
-                animation.finished.then(() => {
-                    if (activeOverlay !== overlay) return;
-                    applyTheme(theme);
+                try {
+                    const animation = overlay.animate(
+                        [
+                            { transform: "translate(-50%, -50%) scale(0)" },
+                            { transform: "translate(-50%, -50%) scale(1)" }
+                        ],
+                        { duration: 850, easing: "cubic-bezier(.65, 0, .25, 1)", fill: "forwards" }
+                    );
+                    animation.onfinish = () => {
+                        if (activeOverlay !== overlay) return;
+                        applyTheme(theme);
+                        overlay.remove();
+                        activeOverlay = null;
+                    };
+                    animation.oncancel = () => {
+                        if (activeOverlay === overlay) {
+                            overlay.remove();
+                            activeOverlay = null;
+                        }
+                    };
+                } catch (error) {
                     overlay.remove();
                     activeOverlay = null;
-                }).catch(() => {});
+                    applyTheme(theme);
+                }
             }
 
             applyTheme(document.documentElement.getAttribute("data-theme") || "light");
