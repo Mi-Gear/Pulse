@@ -71,6 +71,7 @@
                     <th>Приоритет</th>
                     <th>Очередь</th>
                     <th>Создал</th>
+                    <th>Ответственные</th>
                     <th>Дата</th>
                     <th></th>
                 </tr>
@@ -88,11 +89,18 @@
                     <td><span class="priority-{{ ticket.priority.lower() }}">{{ ticket.priority }}</span></td>
                     <td>{% if ticket.queue %}{{ ticket.queue.name }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
                     <td>{{ ticket.creator.full_name or ticket.creator.username if ticket.creator else '—' }}</td>
+                    <td>
+                        {% for assignee in ticket.assignees %}
+                            <div>{{ assignee.full_name or assignee.username }}</div>
+                        {% else %}
+                            <span class="text-muted">—</span>
+                        {% endfor %}
+                    </td>
                     <td class="text-muted small">{{ ticket.created_at.strftime('%d.%m.%Y %H:%M') if ticket.created_at else '—' }}</td>
                     <td><a href="{{ url_for('tickets.ticket_detail', ticket_id=ticket.id) }}" class="btn btn-outline-modern btn-sm"><i class="fas fa-arrow-right"></i></a></td>
                 </tr>
                 {% else %}
-                <tr><td colspan="8" class="text-center py-4 text-muted">Заявок по выбранным фильтрам нет</td></tr>
+                <tr><td colspan="9" class="text-center py-4 text-muted">Заявок по выбранным фильтрам нет</td></tr>
                 {% endfor %}
             </tbody>
         </table>
