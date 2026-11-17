@@ -33,11 +33,14 @@
 
 <style>
     .equipment-list {
-        overflow-x: auto;
+        width: 100%;
+        overflow-x: hidden;
         padding: 2px 2px 8px;
     }
     .equipment-table {
-        min-width: 1380px;
+        width: 100%;
+        min-width: 0;
+        table-layout: fixed;
         border-collapse: separate;
         border-spacing: 0 3px;
         margin-top: -3px;
@@ -49,12 +52,16 @@
         font-size: .72rem;
         font-weight: 600;
         letter-spacing: .025em;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
     .equipment-table tbody td {
         padding: 8px 10px;
         vertical-align: middle;
-        white-space: nowrap;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
         background: var(--bs-body-bg, #fff);
         border-top: 1px solid var(--bs-border-color, #e8edf0);
         border-bottom: 1px solid var(--bs-border-color, #e8edf0);
@@ -81,8 +88,11 @@
         box-shadow: 0 3px 10px rgba(15, 23, 42, .035);
     }
     .equipment-table .equipment-editor {
-        min-width: 105px;
-        max-width: 190px;
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+        padding-left: .35rem;
+        padding-right: .35rem;
     }
     .equipment-page-actions .btn {
         padding: .45rem .85rem;
@@ -163,25 +173,25 @@
                             <input class="form-control form-control-sm equipment-editor d-none" type="text" name="model" form="equipment-form-{{ item.id }}" value="{{ item.model or '' }}" aria-label="Модель">
                             {% endif %}
                         </td>
-                        <td class="text-nowrap">
+                        <td>
                             <span class="equipment-value">{{ item.serial_number or '—' }}</span>
                             {% if current_user.role == 0 or current_user in queue.admins %}
                             <input class="form-control form-control-sm equipment-editor d-none" type="text" name="serial_number" form="equipment-form-{{ item.id }}" value="{{ item.serial_number or '' }}" aria-label="Заводской номер">
                             {% endif %}
                         </td>
-                        <td class="text-nowrap">
+                        <td>
                             <span class="equipment-value">{{ item.inventory_number or '—' }}</span>
                             {% if current_user.role == 0 or current_user in queue.admins %}
                             <input class="form-control form-control-sm equipment-editor d-none" type="text" name="inventory_number" form="equipment-form-{{ item.id }}" value="{{ item.inventory_number or '' }}" aria-label="Инвентарный номер">
                             {% endif %}
                         </td>
-                        <td class="text-nowrap">
+                        <td>
                             <span class="equipment-value">{{ item.production_year or '—' }}</span>
                             {% if current_user.role == 0 or current_user in queue.admins %}
                             <input class="form-control form-control-sm equipment-editor d-none" type="text" name="production_year" form="equipment-form-{{ item.id }}" value="{{ item.production_year or '' }}" aria-label="Год выпуска">
                             {% endif %}
                         </td>
-                        <td class="text-nowrap">
+                        <td>
                             <span class="equipment-value">{{ item.commissioning_year or '—' }}</span>
                             {% if current_user.role == 0 or current_user in queue.admins %}
                             <input class="form-control form-control-sm equipment-editor d-none" type="text" name="commissioning_year" form="equipment-form-{{ item.id }}" value="{{ item.commissioning_year or '' }}" aria-label="Год ввода">
