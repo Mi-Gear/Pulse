@@ -185,13 +185,16 @@
         .theme-toggle {
             display: inline-flex;
             align-items: center;
-            gap: 9px;
+            justify-content: center;
             margin-left: 12px;
+            padding: 7px 9px;
             color: var(--gray-600);
-            font-size: .84rem;
-            font-weight: 600;
+            font-size: 1.1rem;
+            line-height: 1;
+            border-radius: 8px;
             cursor: pointer;
             user-select: none;
+            transition: color .2s ease, background-color .2s ease;
         }
         .theme-toggle input {
             position: absolute;
@@ -199,42 +202,22 @@
             height: 1px;
             opacity: 0;
         }
-        .theme-switch-track {
-            position: relative;
+        .theme-icon {
             display: inline-block;
-            width: 42px;
-            height: 24px;
-            flex: 0 0 42px;
-            border: 1px solid #cbd5e1;
-            border-radius: 999px;
-            background: #e2e8f0;
-            transition: background .2s ease, border-color .2s ease;
+            width: 1.1em;
+            text-align: center;
         }
-        .theme-switch-track::after {
-            content: "";
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #fff;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, .2);
-            transition: transform .2s ease;
-        }
-        .theme-toggle input:checked + .theme-switch-track {
-            background: var(--primary);
-            border-color: var(--primary);
-        }
-        .theme-toggle input:checked + .theme-switch-track::after {
-            transform: translateX(18px);
-        }
-        .theme-toggle input:focus-visible + .theme-switch-track {
+        .theme-toggle input:focus-visible + .theme-icon {
             outline: 3px solid rgba(16, 185, 129, .25);
-            outline-offset: 2px;
+            outline-offset: 4px;
+            border-radius: 4px;
         }
-        .theme-toggle:hover .theme-switch-track {
-            border-color: var(--primary);
+        .theme-toggle:hover {
+            color: var(--primary);
+            background: var(--primary-light);
+        }
+        .theme-toggle input:checked + .theme-icon {
+            color: var(--primary);
         }
 
         html[data-theme="dark"] {
@@ -532,8 +515,7 @@
                         <li class="nav-item">
                             <label class="theme-toggle" for="theme-toggle" title="Переключить тему">
                                 <input type="checkbox" id="theme-toggle" role="switch" aria-label="Тёмная тема">
-                                <span class="theme-switch-track" aria-hidden="true"></span>
-                                <span>Тёмная тема</span>
+                                <i class="fas fa-moon theme-icon" aria-hidden="true"></i>
                             </label>
                         </li>
                     {% else %}
