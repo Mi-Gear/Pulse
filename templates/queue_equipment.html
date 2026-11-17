@@ -111,10 +111,23 @@
         color: var(--primary-dark);
     }
     .equipment-table .equipment-edit-btn {
-        min-width: 32px;
-        border-radius: 8px;
+        min-width: 26px;
+        padding: .2rem .3rem !important;
+        border-radius: 7px;
         color: #718078;
         text-decoration: none;
+    }
+    .equipment-table td.equipment-actions-cell {
+        padding-left: 3px;
+        padding-right: 3px;
+        text-align: center;
+    }
+    .equipment-table td.equipment-actions-cell .btn {
+        max-width: 100%;
+        padding: .22rem .3rem;
+        font-size: .66rem;
+        line-height: 1.2;
+        white-space: normal;
     }
     .equipment-table .equipment-edit-btn:hover {
         color: var(--primary-dark);
@@ -153,8 +166,8 @@
                 <col style="width: 6%">
                 <col style="width: 9%">
                 <col style="width: 8%">
-                <col style="width: 13%">
-                <col style="width: 8%">
+                <col style="width: 15%">
+                <col style="width: 6%">
                 {% else %}
                 <col style="width: 24%">
                 <col style="width: 10%">
@@ -241,7 +254,7 @@
                             {% endif %}
                         </td>
                         {% if current_user.role == 0 or current_user in queue.admins %}
-                        <td class="text-end text-nowrap">
+                        <td class="equipment-actions-cell">
                             <form id="equipment-form-{{ item.id }}" method="POST" action="{{ url_for('queue_detail.edit_queue_equipment', queue_id=queue.id, equipment_id=item.id) }}"></form>
                             <button type="button" class="btn btn-outline-modern btn-sm p-1 equipment-edit-btn" title="Изменить" aria-label="Изменить"><i class="fas fa-pen"></i></button>
                             <button type="submit" form="equipment-form-{{ item.id }}" class="btn btn-primary-gradient btn-sm equipment-save-btn d-none"><i class="fas fa-save me-1"></i> Сохранить</button>
