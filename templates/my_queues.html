@@ -49,11 +49,27 @@
     </div>
 
     {% if queues %}
+        <div class="queues-toolbar mb-3">
+            <div class="queues-search-wrap">
+                <i class="fas fa-search"></i>
+                <input type="search" id="queueSearch" class="queues-search" placeholder="Поиск по названию, описанию или администратору..." autocomplete="off" aria-label="Поиск очередей">
+                <button type="button" id="clearQueueSearch" class="queues-search-clear" aria-label="Очистить поиск" hidden><i class="fas fa-times"></i></button>
+            </div>
+            <select id="queueStatusFilter" class="queues-filter" aria-label="Фильтр по статусу">
+                <option value="all">Все статусы</option>
+                <option value="active">Только активные</option>
+                <option value="inactive">Неактивные</option>
+            </select>
+            <span class="queues-results" id="queueResults" aria-live="polite">{{ queues|length }} из {{ queues|length }}</span>
+        </div>
+    {% endif %}
+
+    {% if queues %}
         <div class="row g-3">
             {% for stat in queue_stats %}
                 {% set queue = stat.queue %}
                 <div class="col-md-6 col-xl-4">
-                    <article class="queue-card h-100 {% if not queue.is_active %}queue-card-inactive{% endif %}">
+                    <article class="queue-card h-100 {% if not queue.is_active %}queue-card-inactive{% endif %}" data-queue-card data-active="{{ 'active' if queue.is_active else 'inactive' }}" data-search="{{ (queue.name ~ ' ' ~ (queue.description or '') ~ ' ' ~ (queue.admins|map(attribute='username')|join(' ')))|lower }}">
                         <div class="queue-card-top">
                             <div class="queue-card-title-wrap">
                                 <span class="queue-card-symbol"><i class="fas fa-inbox"></i></span>
@@ -154,6 +170,19 @@
 </div>
 
 <style>
+.queues-toolbar { display:flex; align-items:center; gap:.7rem; padding:.75rem; border:1px solid var(--queue-border); border-radius:13px; background:var(--queue-surface); }
+.queues-search-wrap { position:relative; display:flex; align-items:center; flex:1 1 420px; min-width:180px; }
+.queues-search-wrap > i { position:absolute; left:.85rem; color:var(--queue-muted); pointer-events:none; }
+.queues-search { width:100%; min-height:40px; padding:.55rem 2.5rem .55rem 2.45rem; border:1px solid var(--queue-border); border-radius:9px; outline:none; background:var(--gray-50, #f8fafc); color:var(--page-text, var(--gray-900)); font:inherit; font-size:.82rem; }
+.queues-search:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(16,185,129,.12); }
+.queues-search-clear { position:absolute; right:.55rem; width:28px; height:28px; border:0; border-radius:7px; color:var(--queue-muted); background:transparent; }
+.queues-search-clear:hover { color:var(--primary); background:var(--gray-100); }
+.queues-filter { min-height:40px; min-width:155px; padding:.45rem 2rem .45rem .7rem; border:1px solid var(--queue-border); border-radius:9px; background:var(--queue-surface); color:var(--page-text, var(--gray-900)); font-size:.8rem; }
+.queues-results { flex:0 0 auto; color:var(--queue-muted); font-size:.75rem; white-space:nowrap; }
+.queue-card[hidden] { display:none !important; }
+.queues-no-results { display:none; padding:2rem 1rem; text-align:center; border:1px dashed var(--queue-border); border-radius:14px; color:var(--queue-muted); background:var(--queue-surface); }
+.queues-no-results.is-visible { display:block; }
+html[data-theme="dark"] .queues-search { background:#17221b; }
 .queues-page { --queue-surface: var(--bs-body-bg, #fff); --queue-border: var(--gray-200, #e5e7eb); --queue-muted: var(--gray-500, #64748b); }
 .queues-hero { display:flex; justify-content:space-between; align-items:center; gap:1.5rem; padding:1.6rem 1.8rem; border:1px solid var(--page-border, #e5e7eb); border-radius:18px; background:linear-gradient(120deg, var(--queue-surface) 0%, var(--gray-50, #f8fafc) 100%); box-shadow:var(--page-shadow, 0 4px 18px rgba(15,23,42,.04)); }
 .queues-eyebrow { color:var(--primary); font-size:.7rem; font-weight:800; letter-spacing:.11em; margin-bottom:.45rem; }
@@ -232,4 +261,41 @@ html[data-theme="dark"] .queue-status.is-inactive { background:#29372f; }
 }
 @media (prefers-reduced-motion: reduce) { .queue-card { transition:none; } .queue-card:hover { transform:none; } }
 </style>
+<script>
+(() => {
+    const search = document.getElementById('queueSearch');
+    const status = document.getElementById('queueStatusFilter');
+    const clear = document.getElementById('clearQueueSearch');
+    const results = document.getElementById('queueResults');
+    const grid = document.querySelector('.queues-page .row.g-3');
+    if (!search || !status || !grid) return;
+
+    const cards = Array.from(grid.querySelectorAll('[data-queue-card]'));
+    const empty = document.createElement('div');
+    empty.className = 'queues-no-results';
+    empty.innerHTML = '<i class="fas fa-search mb-2" style="font-size:1.4rem"></i><div class="fw-semibold">Ничего не найдено</div><div class="small mt-1">Измените запрос или выберите другой статус.</div>';
+    grid.insertAdjacentElement('afterend', empty);
+
+    const apply = () => {
+        const query = search.value.trim().toLocaleLowerCase('ru');
+        const selectedStatus = status.value;
+        let visible = 0;
+        cards.forEach(card => {
+            const matchesText = !query || (card.dataset.search || '').includes(query);
+            const matchesStatus = selectedStatus === 'all' || card.dataset.active === selectedStatus;
+            const show = matchesText && matchesStatus;
+            card.hidden = !show;
+            if (show) visible++;
+        });
+        results.textContent = visible + ' из ' + cards.length;
+        clear.hidden = !search.value;
+        empty.classList.toggle('is-visible', visible === 0);
+    };
+
+    search.addEventListener('input', apply);
+    status.addEventListener('change', apply);
+    clear.addEventListener('click', () => { search.value = ''; apply(); search.focus(); });
+    apply();
+})();
+</script>
 {% endblock %}
