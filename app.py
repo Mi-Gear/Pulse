@@ -1,23 +1,7 @@
-# Внешний процесс-контроллер следит за GitHub, пока дочерний процесс
-# обслуживает запросы. При обновлении контроллер останавливает сервер,
-# синхронизирует файлы и запускает новый процесс.
+# Запуск Flask в текущем процессе без отдельного контроллера.
+# Это исключает PermissionError при создании дочернего процесса в Windows.
 import os
 import sys
-
-if __name__ == "__main__" and os.environ.get("PULSE_WORKER") != "1":
-    from updater import run_supervisor
-    try:
-        run_supervisor()
-    except PermissionError as exc:
-        # На некоторых конфигурациях Windows запрещён запуск дочернего
-        # процесса. В таком случае запускаем Flask в текущем процессе.
-        print(
-            f"[UPDATE] Не удалось создать дочерний процесс ({exc}). "
-            "Запускаю Pulse без отдельного контроллера обновлений.",
-            flush=True,
-        )
-    else:
-        raise SystemExit(0)
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, send_from_directory, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
