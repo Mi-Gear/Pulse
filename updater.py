@@ -7,6 +7,7 @@
 """
 
 import base64
+import contextlib
 import os
 import signal
 import shutil
@@ -227,6 +228,27 @@ def _handle_signal(_signum, _frame):
 
 def run_supervisor():
     """Запускает Pulse и проверяет обновления, пока сервер работает."""
+    log_dir = REPO_DIR / "logs"
+    log_dir.mkdir(exist_ok=True)
+    controller_log = log_dir / "controller.log"
+
+    # Скрытый запуск через VBS не имеет видимой консоли. Сохраняем весь
+    # вывод контроллера и traceback в файл с самого начала его работы.
+    log_stream = controller_log.open("a", encoding="utf-8", buffering=1)
+    with contextlib.redirect_stdout(log_stream), contextlib.redirect_stderr(log_stream):
+        try:
+            _run_supervisor()
+        except BaseException:
+            import traceback
+            print("[UPDATE] Критическая ошибка контроллера:", flush=True)
+            traceback.print_exc()
+            raise
+        finally:
+            log_stream.close()
+
+
+def _run_supervisor():
+    """Внутренняя реализация контроллера."""
     if not APP_FILE.is_file():
         raise RuntimeError(f"Не найден файл приложения: {APP_FILE}")
 
