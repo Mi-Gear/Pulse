@@ -187,11 +187,25 @@ def _install_update():
 def _start_worker():
     env = os.environ.copy()
     env["PULSE_WORKER"] = "1"
-    return subprocess.Popen(
-        [sys.executable, str(APP_FILE)],
-        cwd=REPO_DIR,
-        env=env,
-    )
+
+    # При запуске через run.vbs / скрытый PowerShell стандартные
+    # консольные дескрипторы могут отсутствовать или быть недействительными.
+    # Не наследуем их: выдаём дочернему процессу отдельный лог-файл.
+    log_dir = REPO_DIR / "logs"
+    log_dir.mkdir(exist_ok=True)
+    worker_log = log_dir / "worker.log"
+
+    with worker_log.open("a", encoding="utf-8", buffering=1) as output:
+        return subprocess.Popen(
+            [sys.executable, str(APP_FILE)],
+            cwd=str(REPO_DIR),
+            env=env,
+            stdin=subprocess.DEVNULL,
+            stdout=output,
+            stderr=subprocess.STDOUT,
+            close_fds=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
 
 
 def _stop_worker(process):
