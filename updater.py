@@ -258,17 +258,29 @@ def run_supervisor():
                 return
 
             print(
-                "[UPDATE] Перезапускаю контроллер, чтобы он тоже "
-                "загрузил новую версию updater.py...",
+                "[UPDATE] Запускаю новый контроллер с обновлённой версией...",
                 flush=True,
             )
             env = os.environ.copy()
             env.pop("PULSE_WORKER", None)
-            os.execve(
-                sys.executable,
-                [sys.executable, str(APP_FILE)],
-                env,
-            )
+            try:
+                # os.execve ненадёжен/неподдерживается для такого сценария
+                # на Windows. Запускаем новый процесс и завершаем старый.
+                subprocess.Popen(
+                    [sys.executable, str(APP_FILE)],
+                    cwd=str(REPO_DIR),
+                    env=env,
+                    close_fds=True,
+                )
+                print("[UPDATE] Новый контроллер запущен.", flush=True)
+                return
+            except OSError as exc:
+                print(
+                    f"[UPDATE] Не удалось перезапустить контроллер: {exc}. "
+                    "Пробую запустить сервер в текущем контроллере.",
+                    flush=True,
+                )
+                worker = _start_worker()
 
         # Если дочерний сервер аварийно завершился, поднимаем его снова.
         if worker.poll() is not None:
